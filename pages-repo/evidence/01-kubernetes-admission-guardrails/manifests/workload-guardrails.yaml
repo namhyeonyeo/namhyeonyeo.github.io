@@ -1,0 +1,227 @@
+# ================================================================
+# Workload Security Guardrails v5 - Common (INT / DMZ)
+# ================================================================
+# Target   : Deployment / StatefulSet / DaemonSet
+#            under Namespaces ending with -ns
+#
+# Exclusion: Add label to the owning Namespace (not the workload)
+#   Apply  : kubectl label ns <name> policy.platform/exclude=true
+#   Check  : kubectl get ns -l policy.platform/exclude=true --show-labels
+#   Remove : kubectl label ns <name> policy.platform/exclude-
+#
+# Rules:
+#   DENY : containers must define resources.requests/limits cpu,memory
+#   WARN : initContainers should define resources.requests/limits cpu,memory
+#
+# Note:
+#   validationActions are configured at ValidatingAdmissionPolicyBinding level.
+#   Therefore, Deny and Warn rules must be separated into different policies/bindings.
+#
+# Kubernetes v1.30+ (stable)
+# ================================================================
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: workload-container-guardrails
+  labels:
+    policy.platform/zone: common
+    policy.platform/action: deny
+  annotations:
+    description: >
+      Deny Deployment/StatefulSet/DaemonSet under -ns Namespaces when regular
+      containers do not define resources.requests/limits for cpu and memory.
+      All validations are skipped if the owning Namespace has policy.platform/exclude label.
+spec:
+  failurePolicy: Fail
+
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["apps"]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["deployments", "statefulsets", "daemonsets"]
+
+  matchConditions:
+  - name: only-suffix-ns
+    expression: "request.namespace.matches('.*-ns$')"
+  - name: not-excluded
+    expression: >
+      namespaceObject == null ||
+      !has(namespaceObject.metadata.labels) ||
+      !('policy.platform/exclude' in namespaceObject.metadata.labels)
+
+  validations:
+  # ---- WL-1 : containers - resources.requests.cpu ---------------
+  - expression: >
+      object.spec.template.spec.containers.all(c,
+        has(c.resources) &&
+        has(c.resources.requests) &&
+        'cpu' in c.resources.requests
+      )
+    messageExpression: "'[DENY] ADD field: resources.requests.cpu in containers'"
+    reason: Invalid
+
+  # ---- WL-2 : containers - resources.requests.memory ------------
+  - expression: >
+      object.spec.template.spec.containers.all(c,
+        has(c.resources) &&
+        has(c.resources.requests) &&
+        'memory' in c.resources.requests
+      )
+    messageExpression: "'[DENY] ADD field: resources.requests.memory in containers'"
+    reason: Invalid
+
+  # ---- WL-3 : containers - resources.limits.cpu -----------------
+  - expression: >
+      object.spec.template.spec.containers.all(c,
+        has(c.resources) &&
+        has(c.resources.limits) &&
+        'cpu' in c.resources.limits
+      )
+    messageExpression: "'[DENY] ADD field: resources.limits.cpu in containers'"
+    reason: Invalid
+
+  # ---- WL-4 : containers - resources.limits.memory --------------
+  - expression: >
+      object.spec.template.spec.containers.all(c,
+        has(c.resources) &&
+        has(c.resources.limits) &&
+        'memory' in c.resources.limits
+      )
+    messageExpression: "'[DENY] ADD field: resources.limits.memory in containers'"
+    reason: Invalid
+
+---
+# ================================================================
+# Binding for workload-container-guardrails
+# ================================================================
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: workload-container-guardrails-b
+spec:
+  policyName: workload-container-guardrails
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+        - kube-system
+        - kube-public
+        - kube-node-lease
+        - policy-system
+      - key: policy.platform/exclude
+        operator: DoesNotExist
+
+---
+# ================================================================
+# Workload InitContainer Guardrails - WARN only
+# ================================================================
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: workload-initcontainer-guardrails
+  labels:
+    policy.platform/zone: common
+    policy.platform/action: warn
+  annotations:
+    description: >
+      Warn Deployment/StatefulSet/DaemonSet under -ns Namespaces when
+      initContainers do not define resources.requests/limits for cpu and memory.
+      Workload creation/update is not blocked by this policy.
+spec:
+  failurePolicy: Fail
+
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["apps"]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["deployments", "statefulsets", "daemonsets"]
+
+  matchConditions:
+  - name: only-suffix-ns
+    expression: "request.namespace.matches('.*-ns$')"
+  - name: not-excluded
+    expression: >
+      namespaceObject == null ||
+      !has(namespaceObject.metadata.labels) ||
+      !('policy.platform/exclude' in namespaceObject.metadata.labels)
+
+  variables:
+  - name: initContainers
+    expression: >
+      has(object.spec.template.spec.initContainers)
+        ? object.spec.template.spec.initContainers
+        : []
+
+  validations:
+  # ---- WL-5 : initContainers - resources.requests.cpu -----------
+  - expression: >
+      variables.initContainers.all(c,
+        has(c.resources) &&
+        has(c.resources.requests) &&
+        'cpu' in c.resources.requests
+      )
+    messageExpression: "'[WARN] ADD field: resources.requests.cpu in initContainers'"
+    reason: Invalid
+
+  # ---- WL-6 : initContainers - resources.requests.memory --------
+  - expression: >
+      variables.initContainers.all(c,
+        has(c.resources) &&
+        has(c.resources.requests) &&
+        'memory' in c.resources.requests
+      )
+    messageExpression: "'[WARN] ADD field: resources.requests.memory in initContainers'"
+    reason: Invalid
+
+  # ---- WL-7 : initContainers - resources.limits.cpu -------------
+  - expression: >
+      variables.initContainers.all(c,
+        has(c.resources) &&
+        has(c.resources.limits) &&
+        'cpu' in c.resources.limits
+      )
+    messageExpression: "'[WARN] ADD field: resources.limits.cpu in initContainers'"
+    reason: Invalid
+
+  # ---- WL-8 : initContainers - resources.limits.memory ----------
+  - expression: >
+      variables.initContainers.all(c,
+        has(c.resources) &&
+        has(c.resources.limits) &&
+        'memory' in c.resources.limits
+      )
+    messageExpression: "'[WARN] ADD field: resources.limits.memory in initContainers'"
+    reason: Invalid
+
+---
+# ================================================================
+# Binding for workload-initcontainer-guardrails
+# ================================================================
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: workload-initcontainer-guardrails-b
+spec:
+  policyName: workload-initcontainer-guardrails
+  validationActions: [Warn]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+        - kube-system
+        - kube-public
+        - kube-node-lease
+        - policy-system
+      - key: policy.platform/exclude
+        operator: DoesNotExist

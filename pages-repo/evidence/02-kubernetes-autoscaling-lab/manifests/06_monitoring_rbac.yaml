@@ -1,0 +1,164 @@
+# ============================================================
+# 06_monitoring_rbac.yaml
+# 목적: CA/HPA 테스트 관찰을 위한 RBAC 및 모니터링 구성
+# 적용: kubectl apply -f 06_monitoring_rbac.yaml
+# ============================================================
+
+---
+# 테스트 관찰자 ServiceAccount (최소 권한 원칙)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: autoscale-observer
+  namespace: autoscale-test
+
+---
+# 관찰에 필요한 최소 권한 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: autoscale-observer-role
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  - nodes
+  - events
+  - services
+  - endpoints
+  - namespaces
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["autoscaling"]
+  resources:
+  - horizontalpodautoscalers
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources:
+  - pods
+  - nodes
+  verbs: ["get", "list"]
+- apiGroups: ["policy"]
+  resources:
+  - poddisruptionbudgets
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources:
+  - jobs
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: autoscale-observer-binding
+subjects:
+- kind: ServiceAccount
+  name: autoscale-observer
+  namespace: autoscale-test
+roleRef:
+  kind: ClusterRole
+  name: autoscale-observer-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ──────────────────────────────────────────
+# 실시간 모니터링 Pod (kubectl 내장)
+# 테스트 중 별도 터미널에서 이 Pod으로 실시간 모니터링
+# ──────────────────────────────────────────
+apiVersion: v1
+kind: Pod
+metadata:
+  name: autoscale-monitor
+  namespace: autoscale-test
+  labels:
+    app: autoscale-monitor
+    role: observer
+spec:
+  serviceAccountName: autoscale-observer
+  containers:
+  - name: kubectl
+    # bitnami kubectl: kubectl 포함된 경량 이미지
+    image: bitnami/kubectl:latest
+    command:
+    - /bin/sh
+    - -c
+    - |
+      echo "=== Autoscaling Monitor 시작 ==="
+      echo "사용 가능한 관찰 명령어:"
+      echo "  kubectl get hpa -n autoscale-test -w"
+      echo "  kubectl get pods -n autoscale-test -w"
+      echo "  kubectl get nodes -w"
+      echo "  kubectl top nodes"
+      echo "  kubectl top pods -n autoscale-test"
+      echo ""
+      # 루프로 상태 기록 (로그로 확인 가능)
+      while true; do
+        echo "====== $(date '+%Y-%m-%d %H:%M:%S') ======"
+        echo "--- HPA Status ---"
+        kubectl get hpa -n autoscale-test 2>/dev/null || echo "HPA 없음"
+        echo "--- Pod Count ---"
+        kubectl get pods -n autoscale-test --no-headers 2>/dev/null | \
+          awk '{print $3}' | sort | uniq -c
+        echo "--- Node Count ---"
+        kubectl get nodes --no-headers 2>/dev/null | \
+          awk '{print $2}' | sort | uniq -c
+        echo "--- Pending Pods ---"
+        kubectl get pods -n autoscale-test --field-selector=status.phase=Pending \
+          --no-headers 2>/dev/null | wc -l
+        sleep 30
+      done
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+  restartPolicy: Always
+
+---
+# ──────────────────────────────────────────
+# 핵심 모니터링 명령어 모음 (복사용)
+#
+# [CA 상태 실시간 확인]
+# kubectl logs -n kube-system \
+#   -l app=cluster-autoscaler \
+#   --tail=100 -f | grep -E "scale|Scale|pending|Pending|node|Node|error|Error"
+#
+# [이벤트 필터링]
+# kubectl get events -n kube-system \
+#   --sort-by='.lastTimestamp' | \
+#   grep -E "ScaleUp|ScaleDown|TriggeredScaleUp|NotTriggerScaleUp|FailedToScale"
+#
+# [HPA 상세 상태]
+# kubectl describe hpa -n autoscale-test php-apache-hpa
+# → "Conditions:" 섹션에서 AbleToScale, ScalingActive, ScalingLimited 확인
+#
+# [CA 내부 상태 (있는 경우)]
+# kubectl get cm -n kube-system cluster-autoscaler-status -o yaml
+#
+# [전체 리소스 현황]
+# kubectl get all -n autoscale-test
+#
+# [노드별 리소스 사용률]
+# kubectl top nodes
+# kubectl describe nodes | grep -A5 "Allocated resources"
+#
+# [Pod Pending 원인 분석]
+# kubectl get pods -n autoscale-test | grep Pending | \
+#   awk '{print $1}' | \
+#   xargs -I{} kubectl describe pod {} -n autoscale-test | \
+#   grep -A10 "Events:"
+#
+# [CA 결정 이유 상세 로그]
+# kubectl logs -n kube-system \
+#   $(kubectl get pod -n kube-system -l app=cluster-autoscaler \
+#     -o jsonpath='{.items[0].metadata.name}') \
+#   | grep -E "I[0-9].*scale" | tail -50
+# ──────────────────────────────────────────

@@ -1,0 +1,71 @@
+{
+  "slug": "enterprise-multitenant-kubernetes-platform",
+  "order": 3,
+  "title": "Enterprise Multi-Tenant Kubernetes Platform",
+  "period": "2022.04 – 2022.12",
+  "type": "PRODUCTION PROJECT",
+  "summary": "PROD / DR / DEV / STG / Sandbox 환경을 고려한 Tanzu 기반 Kubernetes 플랫폼을 구축하고 Ingress, Registry, Load Balancer, Storage 연동을 하나의 운영 플랫폼으로 구성한 프로젝트입니다.",
+  "context": [
+    "여러 환경과 workload를 분리해 수용할 온프레미스 Kubernetes 플랫폼이 필요했습니다.",
+    "내부/DMZ 네트워크와 Registry DR, Ingress, Storage 등 플랫폼 공통 기능을 함께 구성해야 했습니다."
+  ],
+  "problem": [
+    "환경별 Kubernetes cluster와 공통 플랫폼 구성요소를 일관된 방식으로 제공해야 했습니다.",
+    "애플리케이션 delivery뿐 아니라 네트워크, 인증서, 이미지 보안, 스토리지까지 함께 연동해야 했습니다."
+  ],
+  "constraints": [
+    "On-Premise enterprise network",
+    "환경별 분리",
+    "Private registry 및 외부 연결 제한"
+  ],
+  "role": [
+    "Tanzu Kubernetes 기반 Multi-Tenant cluster 구축",
+    "Contour / Envoy Ingress와 TLS Delegation 구성",
+    "Harbor private registry / DR replication / offline Trivy scan 구성",
+    "NSX ALB 및 Dell PowerStore CSI 연동 지원"
+  ],
+  "architecture": {
+    "diagram": "Developer / CI\n     │\n     ▼\nPrivate Registry (Harbor)\n     │\n     ▼\nKubernetes clusters\n(PROD / DR / DEV / STG / Sandbox)\n     │\n     ├─ Contour / Envoy → Ingress\n     ├─ NSX ALB → VIP / LoadBalancer\n     └─ PowerStore CSI → Persistent Storage",
+    "notes": [
+      "공개 자료에서는 고객사 네트워크 정보와 실제 cluster 이름을 일반화합니다."
+    ]
+  },
+  "decisions": [
+    {
+      "label": "환경 분리",
+      "text": "운영/재해복구/개발/스테이징/샌드박스 성격을 분리해 platform lifecycle과 테스트 영향을 구분했습니다."
+    }
+  ],
+  "implementation": [
+    "Contour / Envoy 설치와 HTTPS/TLS Delegation",
+    "Harbor 운영/DR replication 및 Trivy offline scan",
+    "NSX ALB Ingress IP Pool 연동",
+    "Dell PowerStore CSI / Snapshot 관련 prerequisite 구성 지원"
+  ],
+  "validation": [
+    "환경별 network/resource separation 검증",
+    "Harbor replication 및 이미지 보안 검증",
+    "Persistent Volume 생성·마운트 및 Storage integration 확인"
+  ],
+  "outcome": [
+    "Multi-Tenant 온프레미스 Kubernetes 플랫폼의 기반을 구축했습니다.",
+    "이후 운영 고도화, GitOps, 네트워크 리팩토링 작업으로 이어지는 플랫폼 기반이 됐습니다."
+  ],
+  "technologies": [
+    "Kubernetes",
+    "VMware Tanzu",
+    "Contour",
+    "Envoy",
+    "Harbor",
+    "Trivy",
+    "NSX ALB",
+    "Dell PowerStore CSI",
+    "TLS"
+  ],
+  "related_cases": [
+    "guest-cluster-api-etcd-san-mismatch",
+    "pv-attachment-node-provisioning"
+  ],
+  "related_repository": "",
+  "evidence_links": []
+}

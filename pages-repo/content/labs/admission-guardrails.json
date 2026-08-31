@@ -1,0 +1,45 @@
+{
+  "slug": "admission-guardrails",
+  "order": 1,
+  "title": "Kubernetes Admission Guardrails",
+  "label": "PLATFORM POLICY DESIGN",
+  "status": "Sanitized design + manifest",
+  "category": "Policy / Governance",
+  "objective": "ValidatingAdmissionPolicy(CEL)와 MutatingWebhook의 역할을 분리해 Namespace와 Workload 표준을 API admission 시점에서 강제·경고·자동 보정하는 구조를 설계합니다.",
+  "environment": [
+    "Kubernetes v1.33",
+    "ValidatingAdmissionPolicy",
+    "CEL",
+    "MutatingAdmissionWebhook"
+  ],
+  "implementation": [
+    "Namespace label Deny/Warn policy 설계",
+    "Deployment / StatefulSet / DaemonSet resource request/limit 및 ServiceAccount token guardrail",
+    "Mutation이 필요한 Pod Security label은 webhook으로 분리",
+    "Audit → Warn → Deny rollout model 정리"
+  ],
+  "validation": [
+    "VAP typeChecking 확인",
+    "Deny/Warn/Mutation test scenario 설계",
+    "Webhook failurePolicy / TLS / exception handling 검토"
+  ],
+  "lessons": [
+    "Validation과 Mutation은 같은 문제처럼 보여도 Kubernetes API admission에서 역할과 failure mode가 다릅니다.",
+    "정책은 처음부터 Deny로 적용하기보다 Audit / Warn 단계에서 영향도를 확인하는 것이 안전합니다."
+  ],
+  "repository": "namhyeonyeo.github.io",
+  "evidence_links": [
+    {
+      "label": "Workload guardrail manifest",
+      "path": "evidence/01-kubernetes-admission-guardrails/manifests/workload-guardrails.yaml"
+    },
+    {
+      "label": "Policy design summary",
+      "path": "evidence/01-kubernetes-admission-guardrails/docs/policy-design.md"
+    },
+    {
+      "label": "Validation actions",
+      "path": "evidence/01-kubernetes-admission-guardrails/docs/validation-actions.md"
+    }
+  ]
+}

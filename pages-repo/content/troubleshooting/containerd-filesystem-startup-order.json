@@ -1,0 +1,59 @@
+{
+  "slug": "containerd-filesystem-startup-order",
+  "order": 2,
+  "title": "containerd Restart Was a Workaround: Filesystem Startup Order RCA",
+  "date": "Production incident · date omitted",
+  "category": "Linux / Container Runtime",
+  "evidence_status": "WBS-backed sanitized case",
+  "environment": [
+    "Linux",
+    "systemd",
+    "containerd",
+    "Kubernetes Worker Node",
+    "Filesystem"
+  ],
+  "symptoms": [
+    "노드 reboot/migration 이후 workload가 정상 기동하지 않았습니다.",
+    "containerd를 재시작하면 복구되어 처음에는 runtime cache/socket 문제처럼 보였습니다."
+  ],
+  "architecture": "Boot\n ├─ containerd start\n └─ data filesystem mount (later)\n\ncontainerd starts before expected data is available",
+  "investigation": [
+    "image cache, stale socket, kubelet/containerd state, filesystem 상태를 후보로 두었습니다.",
+    "journal timestamp와 filesystem mount 시점을 비교했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "Runtime cache/socket",
+      "text": "재시작으로 복구된다는 현상만으로는 설명되지만 journal timeline과 맞지 않았습니다."
+    },
+    {
+      "label": "Filesystem startup ordering",
+      "text": "containerd 시작 후 데이터 filesystem이 늦게 mount되는 타임라인이 확인되어 채택했습니다."
+    }
+  ],
+  "evidence": [
+    "containerd start 시점과 data filesystem mount 완료 시점 사이에 시간 차가 있었습니다.",
+    "filesystem mount 이후 containerd restart 시 기존 runtime data를 정상 인식했습니다."
+  ],
+  "root_cause": "containerd가 기대하는 데이터 filesystem이 mount되기 전에 runtime이 먼저 시작되는 startup-order dependency 문제였습니다.",
+  "resolution": [
+    "즉시 복구는 filesystem mount 완료 후 containerd restart로 수행했습니다.",
+    "장기적으로 runtime startup이 실제 filesystem availability를 보장하는 target에 의존하도록 검토했습니다."
+  ],
+  "validation": [
+    "filesystem mount 후 runtime data 인식 확인",
+    "workload 정상 기동 확인"
+  ],
+  "prevention": [
+    "재부팅 계열 장애에서 service restart 결과만 보지 않고 systemd dependency와 journal timeline을 함께 확인하도록 RCA에 반영했습니다."
+  ],
+  "lessons": [
+    "\"restart하면 된다\"에서 멈추지 않고 왜 restart하면 되는지를 시간 순서로 확인한 사례입니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "Sanitized case note",
+      "path": "evidence/06-sre-troubleshooting-casebook/cases/03-containerd-filesystem-startup-order.md"
+    }
+  ]
+}

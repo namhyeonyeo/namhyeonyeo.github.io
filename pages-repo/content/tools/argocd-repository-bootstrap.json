@@ -1,0 +1,22 @@
+{
+  "slug": "argocd-repository-bootstrap",
+  "order": 1,
+  "name": "create-argocd-repositories.sh",
+  "category": "gitops",
+  "language": "Bash",
+  "problem": "GitOps 이관 과정에서 여러 repository 등록 작업을 반복해야 했고, 운영용 원본 script에는 내부 endpoint / credential을 직접 넣으면 공개할 수 없었습니다.",
+  "purpose": "Repository 등록 흐름을 재사용하되 credential을 environment variable로 주입하는 공개용 예제로 정리했습니다.",
+  "usage": "export GITLAB_URL=https://gitlab.example.com\nexport GITLAB_USERNAME=<user>\nexport GITLAB_PASSWORD=<token>\n./create-argocd-repositories.sh",
+  "example": "[INFO] adding repository: platform-config\n[OK] repository registered",
+  "safety": [
+    "실제 password/token은 파일에 저장하지 않습니다.",
+    "내부 domain은 example.com으로 sanitization합니다."
+  ],
+  "repository": "namhyeonyeo.github.io",
+  "evidence_links": [
+    {
+      "label": "Sanitized script",
+      "path": "evidence/04-kubernetes-gitops-migration/scripts/create-argocd-repositories.sh"
+    }
+  ]
+}

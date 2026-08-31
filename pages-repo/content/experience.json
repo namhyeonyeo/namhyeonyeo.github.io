@@ -1,0 +1,41 @@
+{
+  "positions": [
+    {
+      "company": "이테크시스템 (E-Tech System)",
+      "team": "Cloud / PaaS Platform",
+      "role": "Cloud Platform Engineer / Container Platform Engineer",
+      "period": "2020.10 – Present",
+      "summary": "엔터프라이즈 고객의 온프레미스 Kubernetes 플랫폼 구축과 운영을 담당해 왔습니다. 초기에는 Tanzu 기반 플랫폼 구축이 중심이었고, 이후 네트워크 구조 개선, GitOps 전환, 관측성 확장, 운영 자동화와 장애 분석까지 역할을 넓혔습니다.",
+      "responsibilities": [
+        "Kubernetes / VMware Tanzu 기반 온프레미스 PaaS 구축 및 운영",
+        "Contour / Envoy, AKO / AVI, NSX ALB 기반 Ingress 및 네트워크 구조 설계·전환 지원",
+        "Dell PowerStore CSI / CSM, vSphere CSI, NFS 기반 Kubernetes 스토리지 연동",
+        "ArgoCD / GitLab / Jenkins / Helm / Kustomize를 활용한 배포·운영 구조 개선",
+        "Prometheus / Pushgateway / PromQL / Splunk를 활용한 플랫폼 관측성 확장",
+        "RBAC, ResourceQuota, Admission Policy 및 운영 가드레일 설계·검증",
+        "Production 장애 원인 분석 및 점검·자동화 스크립트 작성"
+      ],
+      "clients": "Financial Enterprise, Public Sector, Game / Technology Enterprise (공개 포트폴리오에서는 고객 식별정보를 제거합니다.)",
+      "projectRefs": [
+        "avi-ako-ingress-migration",
+        "gitops-infrastructure-migration",
+        "enterprise-multitenant-kubernetes-platform",
+        "ingress-observability-extension",
+        "antrea-stable-egress"
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "CKA — Certified Kubernetes Administrator",
+      "issuer": "CNCF / Linux Foundation",
+      "date": "2021.02"
+    }
+  ],
+  "education": [
+    {
+      "name": "Institute of Technology Carlow · Aviation Electronics / Avionics",
+      "period": "2014.10 – 2015.06"
+    }
+  ]
+}

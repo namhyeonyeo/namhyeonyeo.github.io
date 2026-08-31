@@ -1,0 +1,11 @@
+apiVersion: crd.antrea.io/v1alpha2
+kind: ExternalIPPool
+metadata:
+  name: sample-egress-pool
+spec:
+  ipRanges:
+  - start: 192.0.2.60
+    end: 192.0.2.60
+  nodeSelector:
+    matchLabels:
+      network-role: egress-origin

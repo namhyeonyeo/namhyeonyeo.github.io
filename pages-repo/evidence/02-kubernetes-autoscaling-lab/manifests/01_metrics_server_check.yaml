@@ -1,0 +1,95 @@
+# ============================================================
+# 01_metrics_server_check.yaml
+# 목적: metrics-server 미설치 환경을 위한 배포 (이미 있으면 skip)
+# 전제: HPA가 CPU/Memory 메트릭 수집하려면 metrics-server 필수
+# 확인: kubectl top nodes && kubectl top pods -n autoscale-test
+# 적용: kubectl apply -f 01_metrics_server_check.yaml
+# ============================================================
+
+---
+# metrics-server가 없는 경우에만 적용
+# EKS: eks-charts/metrics-server, GKE: 기본 내장, Kubeadm: 직접 설치 필요
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-server
+  namespace: kube-system
+  labels:
+    k8s-app: metrics-server
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        k8s-app: metrics-server
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccountName: metrics-server
+      volumes:
+      - name: tmp-dir
+        emptyDir: {}
+      containers:
+      - name: metrics-server
+        # 공식 최신 태그는 https://github.com/kubernetes-sigs/metrics-server/releases 확인
+        image: registry.k8s.io/metrics-server/metrics-server:v0.7.1
+        imagePullPolicy: IfNotPresent
+        args:
+        - --cert-dir=/tmp
+        - --secure-port=10250
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --kubelet-use-node-status-port
+        - --metric-resolution=15s
+        # 자체 서명 인증서 환경(kubeadm 등)에서만 사용, 운영에서는 제거
+        # - --kubelet-insecure-tls
+        ports:
+        - containerPort: 10250
+          name: https
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp-dir
+          mountPath: /tmp
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+# [운영 팁]
+# metrics-server 정상 동작 확인 명령어:
+#
+# kubectl get apiservice v1beta1.metrics.k8s.io -o yaml
+# → status.conditions[0].status: "True" 이어야 함
+#
+# kubectl top nodes
+# kubectl top pods -n autoscale-test
+#
+# 문제 발생 시:
+# kubectl logs -n kube-system -l k8s-app=metrics-server --tail=50

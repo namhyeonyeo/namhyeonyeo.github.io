@@ -1,0 +1,59 @@
+# ============================================================
+# 00_namespace_and_quota.yaml
+# 목적: 테스트 격리 환경 구성
+# 적용: kubectl apply -f 00_namespace_and_quota.yaml
+# ============================================================
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: autoscale-test
+  labels:
+    purpose: ca-hpa-stress-test
+    env: test
+
+---
+# ResourceQuota: 테스트 환경의 최대 리소스 상한 설정
+# 의도: CA가 무한정 노드를 추가하지 않도록 Guard 역할
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: autoscale-test-quota
+  namespace: autoscale-test
+spec:
+  hard:
+    requests.cpu: "40"        # 노드 ~10대 분량 (노드 스펙에 맞게 조정)
+    requests.memory: 80Gi
+    limits.cpu: "80"
+    limits.memory: 160Gi
+    pods: "200"
+    persistentvolumeclaims: "20"
+
+---
+# LimitRange: 리소스 미설정 Pod에 기본값 자동 주입
+# HPA, CA 동작에서 requests 미설정 Pod는 스케일 판단 오류의 주원인
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: autoscale-test-limitrange
+  namespace: autoscale-test
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+  - type: Pod
+    max:
+      cpu: "8"
+      memory: "16Gi"

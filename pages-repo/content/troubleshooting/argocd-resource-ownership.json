@@ -1,0 +1,52 @@
+{
+  "slug": "argocd-resource-ownership",
+  "order": 5,
+  "title": "GitOps Migration: Avoiding Dual Ownership and Accidental Resource Deletion",
+  "date": "2026",
+  "category": "GitOps / ArgoCD / Helm",
+  "evidence_status": "Sanitized workflow evidence",
+  "environment": [
+    "Kubernetes",
+    "ArgoCD",
+    "Helm",
+    "GitLab"
+  ],
+  "symptoms": [
+    "기존 Helm/manual 리소스를 ArgoCD로 이관한 뒤에도 기존 release와 관리 정보가 남아 있었습니다.",
+    "기존 ownership을 잘못 제거하면 이미 GitOps에서 사용 중인 Kubernetes resource까지 삭제할 수 있었습니다."
+  ],
+  "architecture": "Old path: Helm/manual ─┐\n                        ├─ same Kubernetes objects\nNew path: Git → ArgoCD ─┘",
+  "investigation": [
+    "ArgoCD가 관리 중인 실제 object와 기존 Helm release resource를 비교했습니다.",
+    "managed-by label만으로 ownership을 단정하지 않고 manifest / application 기준으로 확인했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "managed-by=Helm이면 기존 Helm만 관리",
+      "text": "CMP/GitOps로 렌더링된 리소스에도 Helm metadata가 남을 수 있어 단독 판단 기준으로 쓰지 않았습니다."
+    }
+  ],
+  "evidence": [
+    "sanitized AppProject / repository creation example과 migration playbook이 남아 있습니다."
+  ],
+  "root_cause": "GitOps 전환에서는 object 자체보다 management ownership의 전환 구간이 위험합니다. 동일 object를 두 관리 경로가 동시에 건드리지 않도록 inventory → sync → validation → old ownership cleanup 순서가 필요했습니다.",
+  "resolution": [
+    "기존 resource를 먼저 삭제하지 않고 ArgoCD sync와 service validation을 완료한 뒤 old ownership을 단계적으로 정리했습니다."
+  ],
+  "validation": [
+    "ArgoCD sync 상태와 live Kubernetes resource 비교",
+    "다른 Application에서 사용 중인 resource인지 확인"
+  ],
+  "prevention": [
+    "migration runbook에 ownership 확인과 cleanup gate를 별도 단계로 유지합니다."
+  ],
+  "lessons": [
+    "GitOps migration의 핵심은 manifest copy가 아니라 ownership transfer입니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "Migration playbook",
+      "path": "evidence/04-kubernetes-gitops-migration/docs/migration-playbook.md"
+    }
+  ]
+}

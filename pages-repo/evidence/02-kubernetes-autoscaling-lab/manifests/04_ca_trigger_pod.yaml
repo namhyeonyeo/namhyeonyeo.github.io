@@ -1,0 +1,180 @@
+# ============================================================
+# 04_ca_trigger_pod.yaml
+# 목적: CA를 직접 트리거 (HPA 없이 대용량 Pod으로 Pending 강제 유발)
+# 원리: 현재 노드에 배치 불가한 requests를 가진 Pod → Pending → CA 트리거
+#
+# ★ 실무 중요 포인트:
+#   CA는 "Pending Pod이 있을 때" 노드를 추가한다.
+#   따라서 HPA만으로는 CA 검증이 불완전 → 직접 Pending 유발이 가장 확실한 방법
+#
+# 적용: kubectl apply -f 04_ca_trigger_pod.yaml
+# ============================================================
+
+# ──────────────────────────────────────────
+# [방법 1] 대용량 Deployment로 Pending 강제 유발
+# 노드 1대의 allocatable CPU/Memory 계산 후 초과하는 replicas 설정
+# 예: 노드 1대 = 4 CPU, 8GB → requests 1CPU x 8 replicas = 2노드 이상 필요
+# ──────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-trigger-cpu
+  namespace: autoscale-test
+  labels:
+    app: ca-trigger-cpu
+    test-type: ca-direct-trigger
+spec:
+  # 현재 클러스터 가용 노드 수보다 많은 replicas 설정
+  # 예: 노드 2대(각 4CPU) → 1CPU x 10 replicas = 최소 3노드 필요 → CA 트리거
+  replicas: 10
+  selector:
+    matchLabels:
+      app: ca-trigger-cpu
+  template:
+    metadata:
+      labels:
+        app: ca-trigger-cpu
+    spec:
+      containers:
+      - name: pause
+        # pause 컨테이너: 실제 부하 없이 리소스 슬롯만 점유
+        # CA 트리거 테스트의 표준 방법 (실제 CPU 사용 없이 requests만 점유)
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            cpu: "1000m"    # 노드 스펙에 맞게 조정 (1코어 점유)
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+      # CA 스케줄러 판단: "이 Pod을 배치할 노드가 없으면 새 노드 추가"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: ca-trigger-cpu
+              topologyKey: kubernetes.io/hostname
+              # → 각 노드에 1개씩만 배치 권장 → 더 많은 노드 요청하게 됨
+
+---
+# ──────────────────────────────────────────
+# [방법 2] 강제 Pending: nodeSelector로 존재하지 않는 노드 타입 지정
+# → CA가 해당 라벨을 가진 노드 그룹을 추가하는지 확인
+# 주의: CA의 node group 설정에 해당 라벨이 있어야 동작
+# ──────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-trigger-nodegroup
+  namespace: autoscale-test
+  labels:
+    app: ca-trigger-nodegroup
+    test-type: ca-nodegroup-trigger
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ca-trigger-nodegroup
+  template:
+    metadata:
+      labels:
+        app: ca-trigger-nodegroup
+    spec:
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+      # 특정 인스턴스 타입(노드 그룹)으로 유도
+      # EKS 예시: eks.amazonaws.com/nodegroup=high-cpu-ng
+      # GKE 예시: cloud.google.com/gke-nodepool=high-cpu-pool
+      nodeSelector:
+        # 실제 환경의 node group 라벨로 변경
+        # node.kubernetes.io/instance-type: "c5.2xlarge"   # EKS
+        workload-type: "compute-intensive"   # 커스텀 라벨 예시
+      tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "compute-intensive"
+        effect: "NoSchedule"
+
+---
+# ──────────────────────────────────────────
+# [방법 3] PodDisruptionBudget과 함께 CA 스케일다운 저항 테스트
+# CA가 노드를 제거할 때 PDB에 막히는지 확인
+# ──────────────────────────────────────────
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: php-apache-pdb
+  namespace: autoscale-test
+spec:
+  # 최소 50%는 항상 Running 상태 유지 (CA 스케일다운 시 드레인 제한)
+  minAvailable: "50%"
+  selector:
+    matchLabels:
+      app: php-apache
+
+---
+# ──────────────────────────────────────────
+# [방법 4] 대용량 단일 Pod (Overprovisioning 테스트)
+# 단일 노드에 배치 불가한 초대형 Pod → 즉시 Pending → CA 즉시 트리거
+# ──────────────────────────────────────────
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ca-oversize-pod
+  namespace: autoscale-test
+  labels:
+    test-type: ca-oversize
+  annotations:
+    purpose: "CA trigger test - requires new large node"
+spec:
+  containers:
+  - name: pause
+    image: registry.k8s.io/pause:3.9
+    resources:
+      requests:
+        # 현재 클러스터의 최대 노드 spec보다 큰 값으로 설정하면 CA도 스케일 불가 → FailedToScale 이벤트 확인
+        # 정상 테스트: 새 노드 1대로 해결 가능한 크기로 설정
+        cpu: "3500m"     # 예: 4코어 노드에서 3.5코어 점유
+        memory: "6Gi"    # 예: 8GB 노드에서 6GB 점유
+      limits:
+        cpu: "3500m"
+        memory: "6Gi"
+  restartPolicy: Never
+
+# ──────────────────────────────────────────
+# CA 동작 확인 핵심 명령어:
+#
+# 1) Pending Pod 존재 확인:
+#    kubectl get pods -n autoscale-test | grep Pending
+#
+# 2) CA가 Pending을 인지하고 스케일 결정:
+#    kubectl logs -n kube-system -l app=cluster-autoscaler -f | grep -E "scale|pending|trigger"
+#
+# 3) CA 이벤트:
+#    kubectl get events -n kube-system | grep -E "ScaleUp|TriggeredScaleUp|NotTrigger"
+#
+# 4) CA 상태 CM (EKS/GKE는 다를 수 있음):
+#    kubectl get cm -n kube-system cluster-autoscaler-status -o yaml
+#
+# 5) 새 노드 추가 확인:
+#    kubectl get nodes -w
+#    kubectl describe node <new-node> | grep -A5 "Taints\|Allocatable\|Conditions"
+#
+# 6) Pod Pending → Running 전환 시간 측정:
+#    kubectl get events -n autoscale-test | grep -E "Scheduled|FailedScheduling"
+# ──────────────────────────────────────────

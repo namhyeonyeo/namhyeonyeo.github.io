@@ -1,0 +1,110 @@
+{
+  "githubUsername": "namhyeonyeo",
+  "siteUrl": "https://namhyeonyeo.github.io",
+  "baseHref": "/",
+  "name": "NamHyeon Yeo",
+  "nameKo": "여남현",
+  "role": "Cloud Platform / SRE Engineer",
+  "tagline": "Building reliable Kubernetes platforms through architecture, automation, observability and troubleshooting.",
+  "intro": "온프레미스 엔터프라이즈 환경에서 Kubernetes 플랫폼을 구축하고 운영해 왔습니다. 제품 설치 자체보다 구조의 제약을 이해하고, 장애 원인을 좁히고, 반복되는 운영 작업을 표준화·자동화하는 데 관심이 많습니다.",
+  "coreTechnologies": [
+    "Kubernetes",
+    "Linux",
+    "Networking",
+    "GitOps",
+    "Prometheus",
+    "ArgoCD",
+    "VMware Tanzu / VKS",
+    "Python / Bash"
+  ],
+  "highlights": [
+    {
+      "value": "5+ Years",
+      "label": "Cloud Platform Engineering"
+    },
+    {
+      "value": "Production Kubernetes",
+      "label": "Enterprise / Financial Platform"
+    },
+    {
+      "value": "Build → Operate → Improve",
+      "label": "Platform Engineering"
+    },
+    {
+      "value": "CKA",
+      "label": "Certified Kubernetes Administrator"
+    }
+  ],
+  "skills": [
+    {
+      "group": "Kubernetes / Platform",
+      "items": [
+        "Cluster Lifecycle",
+        "Ingress / Egress",
+        "RBAC",
+        "Resource Governance",
+        "Autoscaling",
+        "CSI / Storage",
+        "Admission Control"
+      ]
+    },
+    {
+      "group": "Networking",
+      "items": [
+        "Contour / Envoy",
+        "AKO / AVI",
+        "NSX ALB",
+        "Antrea Egress",
+        "NetworkPolicy",
+        "DNS / TLS",
+        "Traffic-path troubleshooting"
+      ]
+    },
+    {
+      "group": "GitOps / Delivery",
+      "items": [
+        "ArgoCD",
+        "GitLab",
+        "Jenkins",
+        "Helm",
+        "Kustomize",
+        "Harbor",
+        "kpack / Paketo"
+      ]
+    },
+    {
+      "group": "Observability / Reliability",
+      "items": [
+        "Prometheus",
+        "Grafana",
+        "Pushgateway",
+        "PromQL",
+        "Splunk",
+        "Incident RCA",
+        "Runbook design"
+      ]
+    },
+    {
+      "group": "Infrastructure / Automation",
+      "items": [
+        "VMware vSphere",
+        "Tanzu / VKS",
+        "Dell PowerStore",
+        "Bash",
+        "Python",
+        "Terraform (Self Study)",
+        "Ansible (Self Study)"
+      ]
+    }
+  ],
+  "contact": {
+    "email": "ynh0418@gmail.com",
+    "github": "https://github.com/namhyeonyeo",
+    "linkedin": "",
+    "engineeringNotes": ""
+  },
+  "resume": {
+    "summary": "Kubernetes 및 VMware Tanzu 기반의 온프레미스 플랫폼을 설계·구축·운영하며 네트워크, 스토리지, GitOps, 관측성, 정책 및 장애 분석 영역을 함께 다뤄온 Cloud Platform Engineer입니다. 구축 이후의 운영 문제를 구조적으로 좁히고 자동화·표준화하는 경험을 SRE / Platform Engineering 역량으로 확장하고 있습니다.",
+    "downloadNote": "이 페이지는 포트폴리오용 요약입니다. PDF 이력서는 최신 버전 정리 후 연결할 예정입니다."
+  }
+}

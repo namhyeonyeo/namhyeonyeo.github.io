@@ -1,0 +1,28 @@
+{
+  "sections": [
+    {
+      "heading": "What I do",
+      "body": [
+        "온프레미스 인프라에서 Kubernetes 플랫폼을 구축하는 것으로 커리어를 시작했습니다. 클러스터 자체뿐 아니라 Ingress, Load Balancer, Storage, Registry, RBAC, CI/CD까지 연결해야 실제 서비스 플랫폼이 된다는 것을 여러 프로젝트에서 경험했습니다."
+      ]
+    },
+    {
+      "heading": "How my role changed",
+      "body": [
+        "경험이 쌓이면서 \"어떻게 설치하는가\"보다 \"왜 이 구조가 필요한가\", \"장애가 어느 계층에서 시작됐는가\", \"반복되는 운영 작업을 어떻게 줄일 것인가\"에 더 많은 시간을 쓰게 됐습니다. 최근 작업은 네트워크 아키텍처 전환, GitOps ownership migration, Admission Policy, 운영 점검 자동화와 RCA에 집중되어 있습니다."
+      ]
+    },
+    {
+      "heading": "Engineering focus",
+      "body": [
+        "Kubernetes Networking, Reliability, Observability, GitOps, Infrastructure Automation을 핵심 축으로 보고 있습니다. 문제를 볼 때는 애플리케이션 계층만 보지 않고 DNS → VIP → Load Balancer → Service → Pod 또는 Pod → CNI → Node → SNAT → Firewall 같은 실제 트래픽·의존성 경로를 따라가는 방식을 선호합니다."
+      ]
+    },
+    {
+      "heading": "Next",
+      "body": [
+        "현재 경험을 SRE / Platform Engineering으로 확장하면서 Terraform·Ansible 기반 IaC와 Kubernetes 기반 AI Infrastructure / GPU workload 영역을 별도 Lab으로 학습하고 있습니다. Production에서 하지 않은 내용은 포트폴리오에서도 Self Study로 구분합니다."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "slug": "supervisor-certificate-renewal",
+  "order": 3,
+  "title": "Supervisor Certificate Renewal and Control-Plane Recovery",
+  "date": "Production incident · date omitted",
+  "category": "Kubernetes Control Plane / Certificates",
+  "evidence_status": "WBS-backed sanitized case",
+  "environment": [
+    "VMware Supervisor",
+    "Kubernetes",
+    "TLS Certificates",
+    "etcd",
+    "kubelet"
+  ],
+  "symptoms": [
+    "Supervisor certificate renewal 문제와 control-plane instability가 함께 발생했습니다.",
+    "Guest control-plane replacement / registration도 정상적이지 않은 증상이 함께 관측됐습니다."
+  ],
+  "architecture": "Supervisor certificates\n      ↓\nControl-plane components\n      ↓\nGuest cluster management / registration",
+  "investigation": [
+    "certificate renewal error를 먼저 확인했습니다.",
+    "Supervisor core component health, kubelet, etcd endpoint, guest control-plane registration 상태를 계층별로 분리해 확인했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "모든 downstream 증상이 하나의 certificate root cause",
+      "text": "vendor escalation 과정에서 correlation과 causation을 분리해 봐야 했습니다."
+    }
+  ],
+  "evidence": [
+    "Supervisor core component와 etcd health를 별도 확인했습니다.",
+    "Guest control-plane replacement 이후 registration 상태를 재검증했습니다."
+  ],
+  "root_cause": "단일 원인으로 모든 downstream 이벤트를 묶기보다 supervisor certificate-renewal 이슈와 guest-cluster symptom chain을 분리해 복구·검증해야 했던 복합 장애였습니다.",
+  "resolution": [
+    "지원 절차에 따른 certificate renewal",
+    "영향받은 control-plane component health recovery",
+    "정상 등록되지 않은 guest control-plane instance replacement"
+  ],
+  "validation": [
+    "kube-apiserver / scheduler / controller-manager / etcd health 확인",
+    "guest control-plane 정상 registration 및 cluster node 상태 확인"
+  ],
+  "prevention": [
+    "복합 장애 RCA에서 correlation과 causation을 분리하고 dependency별 validation point를 남기도록 했습니다."
+  ],
+  "lessons": [
+    "큰 장애에서는 하나의 root cause로 모든 현상을 설명하려는 유혹을 피하고 각 dependency를 독립적으로 검증해야 합니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "Sanitized case note",
+      "path": "evidence/06-sre-troubleshooting-casebook/cases/05-supervisor-certificate-renewal.md"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "slug": "guest-cluster-api-etcd-san-mismatch",
+  "order": 1,
+  "title": "Guest Cluster API Failure: DHCP → etcd Certificate SAN Mismatch",
+  "date": "Production incident · date omitted",
+  "category": "Control Plane / PKI / Networking",
+  "evidence_status": "WBS-backed sanitized case",
+  "environment": [
+    "Kubernetes",
+    "Control Plane",
+    "etcd",
+    "DHCP",
+    "TLS / PKI"
+  ],
+  "symptoms": [
+    "Guest Kubernetes cluster API 요청이 정상 응답하지 않았습니다.",
+    "Control-plane recovery와 cluster management operation이 정상적으로 진행되지 않았습니다."
+  ],
+  "architecture": "DHCP / Node address\n      ↓\netcd peer certificate SAN\n      ↓\netcd quorum\n      ↓\nkube-apiserver\n      ↓\nCluster API",
+  "investigation": [
+    "애플리케이션보다 아래 계층으로 범위를 줄이고 control-plane network와 etcd peer 상태를 확인했습니다.",
+    "정상 환경과 DHCP/address assignment, certificate SAN, etcd peer health를 비교했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "Generic API network failure",
+      "text": "API timeout 자체가 원인이 아니라 control-plane dependency가 깨진 결과로 판단하고 etcd까지 내려갔습니다."
+    }
+  ],
+  "evidence": [
+    "Control-plane address와 etcd certificate SAN의 불일치가 확인됐습니다.",
+    "Network consistency 복구 후 etcd / API 상태를 재검증했습니다."
+  ],
+  "root_cause": "서로 격리되어야 할 DHCP 영역의 address assignment 문제가 control-plane VM 주소와 etcd peer certificate SAN의 불일치를 만들었고, etcd clustering 실패가 kube-apiserver 장애로 이어졌습니다.",
+  "resolution": [
+    "충돌하는 DHCP 경로를 제거하고 control-plane 주소 일관성을 복구했습니다.",
+    "정상 복구되지 않은 control-plane instance는 platform self-healing / replacement 흐름으로 복구했습니다."
+  ],
+  "validation": [
+    "etcd endpoint / peer health 확인",
+    "Kubernetes API 정상 응답 확인",
+    "cluster node state 정상화 확인"
+  ],
+  "prevention": [
+    "DHCP/network domain 경계와 control-plane address assignment를 함께 점검할 수 있도록 운영 점검 항목에 반영했습니다."
+  ],
+  "lessons": [
+    "Kubernetes API 장애는 application/network 한 계층의 문제로 단정하지 않고 DHCP → PKI → etcd → API dependency를 따라가야 했습니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "Sanitized case note",
+      "path": "evidence/06-sre-troubleshooting-casebook/cases/01-guest-cluster-api-etcd-san-mismatch.md"
+    }
+  ]
+}

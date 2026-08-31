@@ -1,0 +1,10 @@
+apiVersion: crd.antrea.io/v1alpha2
+kind: Egress
+metadata:
+  name: sample-app-egress
+spec:
+  appliedTo:
+    podSelector:
+      matchLabels:
+        app: egress-test-app
+  externalIPPool: sample-egress-pool

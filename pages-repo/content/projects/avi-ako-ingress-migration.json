@@ -1,0 +1,88 @@
+{
+  "slug": "avi-ako-ingress-migration",
+  "order": 1,
+  "title": "Enterprise Kubernetes Ingress Architecture Migration",
+  "period": "2024.11 – 2025.02 / 2026 migration work",
+  "type": "PRODUCTION PROJECT",
+  "summary": "고객의 네트워크 분리 및 플랫폼 표준화 요구를 기존 Tanzu Ingress 구조의 제약 분석으로 연결하고, Contour/HTTPProxy 중심 구조를 AKO / AVI 기반 Ingress 구조로 전환·검증한 작업입니다.",
+  "context": [
+    "기존 환경은 Contour/Envoy와 AVI Load Balancer를 사용하고 있었고, 업무 특성상 서로 다른 Ingress network 영역을 분리해 운영해야 했습니다.",
+    "이후 AVI/AKO 구조 전환 과정에서는 기존 HTTPProxy 기능을 native Ingress와 AVI CR로 매핑하고, DNS cutover와 rollback까지 단계적으로 고려해야 했습니다."
+  ],
+  "problem": [
+    "기본 제공 구조가 복수 Ingress network 요구를 유연하게 처리하기 어려웠습니다.",
+    "기존 HTTPProxy 기반 라우팅과 새 AVI/AKO 구조를 서비스 중단 없이 단계적으로 이전해야 했습니다."
+  ],
+  "constraints": [
+    "고객 네트워크·보안 정책에 따른 망 분리",
+    "기존 서비스와 DNS/VIP 의존성 유지",
+    "환경별 단계적 전환과 rollback 가능성 확보"
+  ],
+  "role": [
+    "고객 요구사항을 Kubernetes / Ingress 기술 구조로 변환",
+    "기존 Contour / AKO / AVI dependency와 제약 분석",
+    "전환 구조 구현·검증 및 환경별 cutover/troubleshooting 지원"
+  ],
+  "architecture": {
+    "diagram": "Control plane\nIngress / AVI CRs\n      │\n      ▼\n     AKO ─────▶ AVI Controller\n                    │\n                    ▼\n               Virtual Service\n\nRuntime data plane\nClient → DNS → AVI VIP → Service Engine → Kubernetes Service → Pod",
+    "notes": [
+      "공개 포트폴리오에서는 고객 IP·FQDN·실제 VIP를 제거하고 control plane과 runtime data plane을 분리해 설명합니다."
+    ]
+  },
+  "decisions": [
+    {
+      "label": "고객 요구와 기술 설계를 분리",
+      "text": "망 분리라는 요구사항 자체는 고객 정책에서 시작됐고, 본인 역할은 이를 구현하기 위한 Kubernetes ingress 구조 분석·설계·구현·검증으로 표현합니다."
+    },
+    {
+      "label": "단계적 migration",
+      "text": "기존 라우팅을 한 번에 제거하지 않고 신규 Ingress / AVI CR, DNS cutover, rollback 순서를 분리해 전환 리스크를 줄이는 방식으로 정리했습니다."
+    }
+  ],
+  "implementation": [
+    "OSS Contour / Envoy와 AKO 기반 복수 Ingress network 구조 검토·적용",
+    "IngressClass / AviInfraSetting 등 network-selection 요소 검토",
+    "HTTPProxy 기능을 Ingress 및 AVI CR 기반 구조로 변환하는 migration 작업",
+    "AKO Helm / GitOps 구성 변경과 환경별 반영"
+  ],
+  "validation": [
+    "업무망/통제망 등 분리된 network 영역에서 애플리케이션 접근 경로 확인",
+    "Ingress → AVI → Service → Pod 경로와 DNS cutover 검증",
+    "전환 단계별 rollback 조건과 legacy component 제거 순서 검토"
+  ],
+  "outcome": [
+    "단일 플랫폼에서 복수 Ingress network 요구를 처리할 수 있는 구조를 마련했습니다.",
+    "기존 Contour/HTTPProxy 의존 구조를 AVI/AKO 중심 구조로 단계적으로 전환할 수 있는 migration 절차를 정리했습니다."
+  ],
+  "technologies": [
+    "Kubernetes",
+    "Contour",
+    "Envoy",
+    "AKO",
+    "AVI / NSX ALB",
+    "Ingress",
+    "HTTPProxy",
+    "AviInfraSetting",
+    "DNS",
+    "Helm",
+    "ArgoCD"
+  ],
+  "related_cases": [
+    "supervisor-certificate-renewal"
+  ],
+  "related_repository": "",
+  "evidence_links": [
+    {
+      "label": "Sanitized architecture note",
+      "path": "evidence/05-avi-ako-ingress-migration/architecture/control-data-plane.md"
+    },
+    {
+      "label": "Migration checklist",
+      "path": "evidence/05-avi-ako-ingress-migration/docs/migration-checklist.md"
+    },
+    {
+      "label": "Evidence still to collect",
+      "path": "evidence/05-avi-ako-ingress-migration/EVIDENCE-TO-COLLECT.md"
+    }
+  ]
+}

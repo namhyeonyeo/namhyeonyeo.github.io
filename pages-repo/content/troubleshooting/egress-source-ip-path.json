@@ -1,0 +1,51 @@
+{
+  "slug": "egress-source-ip-path",
+  "order": 4,
+  "title": "Tracing the Outbound Source IP in an Antrea Egress Path",
+  "date": "2023.09 – 2024.02",
+  "category": "Networking / CNI",
+  "evidence_status": "Manifest + validation note available",
+  "environment": [
+    "Kubernetes",
+    "Antrea CNI",
+    "Egress",
+    "ExternalIPPool",
+    "Firewall / Remote Host"
+  ],
+  "symptoms": [
+    "외부 연동에서 어떤 source IP를 방화벽 기준으로 사용해야 하는지 명확히 검증해야 했습니다."
+  ],
+  "architecture": "Labeled Pod → Antrea Egress → SNAT Egress IP → Remote Host",
+  "investigation": [
+    "ExternalIPPool과 Egress selector가 어느 node/workload에 적용되는지 확인했습니다.",
+    "Test Pod에서 remote host로 traffic을 만들고 remote-side tcpdump를 수행했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "Node IP가 source로 보일 수 있음",
+      "text": "정책 검증은 추측이 아니라 remote packet capture로 확인했습니다."
+    }
+  ],
+  "evidence": [
+    "remote host packet capture에서 configured Egress IP가 source address로 관측되는지 확인하는 검증 절차가 남아 있습니다."
+  ],
+  "root_cause": "장애 RCA라기보다 Egress/SNAT 정책의 실제 datapath를 검증해 firewall source policy와 Kubernetes workload selection을 연결한 network validation case입니다.",
+  "resolution": [
+    "nodeSelector / podSelector 기반 ExternalIPPool + Egress 구성을 적용했습니다."
+  ],
+  "validation": [
+    "Remote-side tcpdump로 source address 확인"
+  ],
+  "prevention": [
+    "외부 연동 onboarding 시 Egress policy 대상 label과 source IP를 함께 점검하도록 합니다."
+  ],
+  "lessons": [
+    "SNAT 위치와 selection rule은 문서만 읽지 않고 반대편 packet capture로 확인하면 가장 명확합니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "Validation note",
+      "path": "evidence/03-antrea-egress-static-snat/docs/validation.md"
+    }
+  ]
+}

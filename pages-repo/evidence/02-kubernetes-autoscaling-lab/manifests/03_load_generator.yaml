@@ -1,0 +1,224 @@
+# ============================================================
+# 03_load_generator.yaml
+# 목적: 단계별 부하 생성 (Light → Heavy → Extreme → Spike)
+# 도구: wrk, vegeta, hey, busybox (wget loop)
+# 적용: kubectl apply -f 03_load_generator.yaml
+# 중단: kubectl delete -f 03_load_generator.yaml
+# ============================================================
+
+# ──────────────────────────────────────────
+# [Phase 1] Light Load - HPA 반응 확인 (CPU 50~80%)
+# ──────────────────────────────────────────
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-light
+  namespace: autoscale-test
+  labels:
+    phase: light
+    component: load-generator
+spec:
+  parallelism: 2          # 동시 2개 워커
+  completions: 2
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        phase: light
+        component: load-generator
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load-generator
+        image: busybox:1.36
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Phase 1: Light Load Start ==="
+          # 300초(5분) 동안 지속 부하
+          end=$((SECONDS + 300))
+          while [ $SECONDS -lt $end ]; do
+            wget -q -O- http://php-apache.autoscale-test.svc.cluster.local > /dev/null 2>&1
+          done
+          echo "=== Phase 1: Light Load End ==="
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+
+# ──────────────────────────────────────────
+# [Phase 2] Heavy Load - CA 트리거 (노드 부족 → Pending → CA 동작)
+# wrk 기반 고강도 HTTP 부하
+# ──────────────────────────────────────────
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-heavy
+  namespace: autoscale-test
+  labels:
+    phase: heavy
+    component: load-generator
+spec:
+  parallelism: 5          # 동시 5개 워커
+  completions: 5
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        phase: heavy
+        component: load-generator
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load-generator
+        # wrk: 성능 벤치마크 HTTP 부하 도구
+        image: williamyeh/wrk:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Phase 2: Heavy Load Start ==="
+          # -t: 스레드 수, -c: 동시 커넥션, -d: 지속 시간
+          wrk -t4 -c100 -d600s http://php-apache.autoscale-test.svc.cluster.local
+          echo "=== Phase 2: Heavy Load End ==="
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+
+# ──────────────────────────────────────────
+# [Phase 3] Extreme Load - CA 스케일아웃 한계 테스트
+# hey(구 boom): Go 기반 고성능 HTTP 벤치마크
+# ──────────────────────────────────────────
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-extreme
+  namespace: autoscale-test
+  labels:
+    phase: extreme
+    component: load-generator
+spec:
+  parallelism: 10         # 동시 10개 워커 → HPA maxReplicas + CA 최대치 유도
+  completions: 10
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        phase: extreme
+        component: load-generator
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load-generator
+        image: rakyll/hey:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Phase 3: Extreme Load Start ==="
+          # -n: 총 요청 수, -c: 동시 워커, -q: QPS 제한(0=무제한)
+          # -z: 시간 기반 (-z 600s = 10분간 지속)
+          hey -z 600s -c 200 -q 0 \
+            http://php-apache.autoscale-test.svc.cluster.local
+          echo "=== Phase 3: Extreme Load End ==="
+        resources:
+          requests:
+            cpu: "300m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+
+# ──────────────────────────────────────────
+# [Phase 4] Spike Load - 순간 폭증 → 스케일다운 후 재폭증 패턴
+# 실제 트래픽 패턴과 가장 유사 (플래시 세일, 마케팅 이벤트 등)
+# ──────────────────────────────────────────
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-spike
+  namespace: autoscale-test
+  labels:
+    phase: spike
+    component: load-generator
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        phase: spike
+        component: load-generator
+    spec:
+      restartPolicy: Never
+      activeDeadlineSeconds: 3600  # 최대 1시간
+      containers:
+      - name: spike-generator
+        image: busybox:1.36
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Phase 4: Spike Pattern Start ==="
+          SPIKE_COUNT=0
+          while [ $SPIKE_COUNT -lt 5 ]; do
+            echo "--- Spike #$((SPIKE_COUNT+1)): 고부하 90초 ---"
+            end=$((SECONDS + 90))
+            while [ $SECONDS -lt $end ]; do
+              # 다수의 병렬 요청으로 순간 부하 생성
+              for i in $(seq 1 20); do
+                wget -q -O- http://php-apache.autoscale-test.svc.cluster.local \
+                  > /dev/null 2>&1 &
+              done
+              sleep 0.1
+            done
+            wait
+            echo "--- 휴지기: 120초 (스케일다운 유도) ---"
+            sleep 120
+            SPIKE_COUNT=$((SPIKE_COUNT+1))
+          done
+          echo "=== Phase 4: Spike Pattern End ==="
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+
+# ──────────────────────────────────────────
+# [모니터링 명령어 요약]
+# 
+# 부하 생성기 상태:
+#   kubectl get jobs -n autoscale-test -w
+#   kubectl get pods -n autoscale-test -l component=load-generator
+#
+# HPA 실시간 반응:
+#   watch -n 5 kubectl get hpa -n autoscale-test
+#
+# Pod 스케일링:
+#   kubectl get pods -n autoscale-test -w
+#
+# CA 동작 로그 (CA Pod 위치에 따라 네임스페이스 다를 수 있음):
+#   kubectl logs -n kube-system -l app=cluster-autoscaler --tail=100 -f
+#
+# 노드 추가 이벤트:
+#   kubectl get events -n kube-system --field-selector reason=TriggeredScaleUp
+#   kubectl get events -n kube-system --field-selector reason=ScaledUpGroup
+#
+# 전체 노드 상태:
+#   watch -n 10 kubectl get nodes
+# ──────────────────────────────────────────

@@ -1,0 +1,73 @@
+{
+  "slug": "antrea-stable-egress",
+  "order": 5,
+  "title": "Stable Outbound Source IP with Antrea Egress",
+  "period": "2023.09 – 2024.02",
+  "type": "PRODUCTION PROJECT",
+  "summary": "노드 lifecycle과 외부 방화벽 정책을 분리하기 위해 선택된 Pod 트래픽을 고정 Egress IP로 SNAT하고 remote-side packet capture로 검증했습니다.",
+  "context": [
+    "외부 시스템이 source IP allowlist를 사용하는 환경에서 Kubernetes node IP를 그대로 source 기준으로 쓰면 node lifecycle과 방화벽 정책이 결합됩니다."
+  ],
+  "problem": [
+    "노드 변경 시 외부 시스템의 allowlist까지 계속 수정해야 할 수 있었습니다."
+  ],
+  "constraints": [
+    "고객 network / firewall 정책",
+    "선택된 workload에만 Egress policy 적용"
+  ],
+  "role": [
+    "Antrea ExternalIPPool / Egress object 구성",
+    "nodeSelector와 podSelector 적용",
+    "Test Pod에서 remote host까지 통신 생성 및 원격 tcpdump 검증"
+  ],
+  "architecture": {
+    "diagram": "Selected Pod\n    │\n    ▼\nAntrea Egress policy\n    │\n    ▼\nEgress-capable Node\n    │ SNAT: stable Egress IP\n    ▼\nFirewall → External System",
+    "notes": [
+      "공개 YAML은 RFC 5737 documentation address로 sanitization했습니다."
+    ]
+  },
+  "decisions": [
+    {
+      "label": "Node IP 대신 stable Egress IP",
+      "text": "Node scale/replacement와 외부 firewall source policy를 분리하기 위해 workload selection 기반 Egress IP를 사용했습니다."
+    }
+  ],
+  "implementation": [
+    "ExternalIPPool 생성",
+    "nodeSelector로 Egress interface 대상 node 선택",
+    "podSelector로 SNAT 적용 workload 선택"
+  ],
+  "validation": [
+    "Test Pod에서 remote server로 ICMP traffic 생성",
+    "remote server tcpdump에서 source address가 configured Egress IP인지 확인"
+  ],
+  "outcome": [
+    "노드 IP 변경과 무관하게 외부 연동에 사용할 고정 source IP 구조를 검증했습니다."
+  ],
+  "technologies": [
+    "Kubernetes",
+    "Antrea",
+    "Egress",
+    "ExternalIPPool",
+    "SNAT",
+    "tcpdump"
+  ],
+  "related_cases": [
+    "egress-source-ip-path"
+  ],
+  "related_repository": "",
+  "evidence_links": [
+    {
+      "label": "Sanitized Egress manifest",
+      "path": "evidence/03-antrea-egress-static-snat/manifests/egress.yaml"
+    },
+    {
+      "label": "Sanitized ExternalIPPool manifest",
+      "path": "evidence/03-antrea-egress-static-snat/manifests/external-ip-pool.yaml"
+    },
+    {
+      "label": "Validation notes",
+      "path": "evidence/03-antrea-egress-static-snat/docs/validation.md"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "slug": "autoscaling-validation",
+  "order": 2,
+  "title": "HPA + Cluster Autoscaler Validation Lab",
+  "label": "LAB / PRODUCTION-ORIENTED VALIDATION",
+  "status": "Manifests + runbook available",
+  "category": "Autoscaling / Scheduling",
+  "objective": "HTTP load → HPA replica 증가 → Pending scheduling pressure → Cluster Autoscaler node scale-out → scale-down까지 전체 흐름과 blocker 조건을 재현합니다.",
+  "environment": [
+    "Kubernetes",
+    "HPA",
+    "Cluster Autoscaler",
+    "Metrics Server",
+    "PDB",
+    "PriorityClass",
+    "ResourceQuota"
+  ],
+  "implementation": [
+    "light/heavy/spike load generator",
+    "Pending Pod / oversized Pod를 이용한 CA trigger",
+    "PDB / safe-to-evict / emptyDir scale-down blocker",
+    "negative PriorityClass 기반 overprovisioning placeholder"
+  ],
+  "validation": [
+    "HPA target/replica 관찰",
+    "CA log와 node provisioning timeline 관찰",
+    "scale-down 가능/불가 Pod 조건 비교"
+  ],
+  "lessons": [
+    "Autoscaling은 CPU metric만의 문제가 아니라 scheduling, requests, PDB, local storage, stabilization timing을 함께 봐야 합니다."
+  ],
+  "repository": "namhyeonyeo.github.io",
+  "evidence_links": [
+    {
+      "label": "Test runbook",
+      "path": "evidence/02-kubernetes-autoscaling-lab/docs/09_test_scenario_runbook.md"
+    },
+    {
+      "label": "HPA target manifest",
+      "path": "evidence/02-kubernetes-autoscaling-lab/manifests/02_target_deployment_hpa.yaml"
+    },
+    {
+      "label": "Scale-down scenarios",
+      "path": "evidence/02-kubernetes-autoscaling-lab/manifests/07_scaledown_test.yaml"
+    }
+  ]
+}

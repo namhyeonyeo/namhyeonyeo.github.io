@@ -1,0 +1,198 @@
+# ============================================================
+# 02_target_deployment_hpa.yaml
+# 목적: HPA + CA 연계 테스트의 타겟 애플리케이션
+# 구조: php-apache (CPU 부하용) + nginx (Memory 부하용) 두 가지 타겟 제공
+# 적용: kubectl apply -f 02_target_deployment_hpa.yaml
+# ============================================================
+
+# ──────────────────────────────────────────
+# [타겟 1] CPU 부하 타겟: php-apache
+# Kubernetes 공식 HPA 문서의 표준 예시 앱
+# 출처: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+# ──────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+  namespace: autoscale-test
+  labels:
+    app: php-apache
+    test-type: cpu-load
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-apache
+  template:
+    metadata:
+      labels:
+        app: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        # Kubernetes 공식 HPA walkthrough 표준 이미지
+        image: registry.k8s.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "200m"       # HPA CPU 사용률 기준점 (이 값 기반으로 % 계산)
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        # Liveness/Readiness: HPA 스케일아웃 후 트래픽 유입 전 헬스체크 보장
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+      # Pod가 Pending 상태에서 CA 트리거되는 속도 향상을 위해 terminationGracePeriodSeconds 단축
+      terminationGracePeriodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache
+  namespace: autoscale-test
+  labels:
+    app: php-apache
+spec:
+  selector:
+    app: php-apache
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+
+---
+# HPA for php-apache: CPU 50% 초과 시 스케일아웃
+# CA 트리거: Pod이 Pending → CA가 노드 추가
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: php-apache-hpa
+  namespace: autoscale-test
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: php-apache
+  minReplicas: 1
+  maxReplicas: 30          # CA 다중 노드 추가를 유도하는 상한
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      # 빠른 스케일아웃: 부하 즉시 반영 (기본 300초 → 0초로 단축)
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+    scaleDown:
+      # 스케일다운은 보수적으로: CA의 노드 제거 판단 시간 고려
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+# ──────────────────────────────────────────
+# [타겟 2] Memory 부하 타겟
+# CPU와 달리 Memory 기반 HPA는 OOMKill 리스크 포함 → 극한 테스트에 적합
+# ──────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-hog
+  namespace: autoscale-test
+  labels:
+    app: memory-hog
+    test-type: memory-load
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-hog
+  template:
+    metadata:
+      labels:
+        app: memory-hog
+    spec:
+      containers:
+      - name: memory-hog
+        image: polinux/stress
+        # 컨테이너 시작 시 즉시 메모리 점유 (stress 툴 활용)
+        command: ["stress"]
+        args:
+        - "--vm"
+        - "1"
+        - "--vm-bytes"
+        - "200M"      # requests.memory의 ~80% 수준에서 시작
+        - "--vm-hang"
+        - "0"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: memory-hog-hpa
+  namespace: autoscale-test
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: memory-hog
+  minReplicas: 1
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: AverageValue
+        averageValue: 400Mi    # Pod 평균 메모리가 400Mi 초과 시 스케일아웃
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 3
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 600   # 메모리 기반은 scaledown 더 보수적으로
+
+# ──────────────────────────────────────────
+# [운영 확인 명령어]
+# kubectl get hpa -n autoscale-test -w
+# kubectl describe hpa php-apache-hpa -n autoscale-test
+# kubectl get pods -n autoscale-test -w
+# kubectl top pods -n autoscale-test
+# ──────────────────────────────────────────

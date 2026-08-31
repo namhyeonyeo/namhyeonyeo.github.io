@@ -1,0 +1,90 @@
+{
+  "slug": "gitops-infrastructure-migration",
+  "order": 2,
+  "title": "Kubernetes Infrastructure GitOps Migration",
+  "period": "2026.05 – 2026.06 (initial migration set)",
+  "type": "PRODUCTION PROJECT",
+  "summary": "Jumpbox에서 수동으로 관리하던 Kubernetes 인프라 리소스의 ownership을 GitLab + ArgoCD 기반 GitOps 모델로 단계적으로 이전한 작업입니다.",
+  "context": [
+    "기존에는 YAML과 Helm 기반 인프라 구성요소가 bastion/jumpbox에서 수동으로 관리되는 영역이 있었습니다.",
+    "전환 과정에서 이미 존재하는 리소스를 새 ArgoCD Application이 관리하게 되므로, 단순 재배포보다 ownership 충돌과 삭제 영향도를 제어하는 것이 중요했습니다."
+  ],
+  "problem": [
+    "동일 Kubernetes object가 기존 Helm/manual path와 ArgoCD에서 동시에 관리될 수 있었습니다.",
+    "기존 release 정리 시 이미 GitOps로 adopt된 리소스까지 삭제할 위험이 있었습니다."
+  ],
+  "constraints": [
+    "기존 서비스 리소스 유지",
+    "환경별 점진 migration",
+    "내부 GitLab/credential 정보 비공개"
+  ],
+  "role": [
+    "수동 배포 리소스 inventory 및 Git 구조 정리",
+    "ArgoCD AppProject / Application 기반 이관 구성",
+    "sync 결과와 실제 Kubernetes 리소스 비교",
+    "이관 이후 기존 ownership/resource 정리 절차 검토"
+  ],
+  "architecture": {
+    "diagram": "Before\nJumpbox / Helm / kubectl\n        │\n        ▼\n Kubernetes\n\nAfter\nGitLab repository → ArgoCD → Kubernetes",
+    "notes": [
+      "핵심은 ArgoCD 설치가 아니라 resource ownership을 수동 운영 경로에서 Git으로 옮기는 과정입니다."
+    ]
+  },
+  "decisions": [
+    {
+      "label": "Inventory first",
+      "text": "기존 파일을 먼저 삭제하지 않고 현재 리소스와 management path를 inventory한 뒤 Application을 연결합니다."
+    },
+    {
+      "label": "Remove old ownership last",
+      "text": "GitOps sync와 서비스 검증이 끝난 뒤 기존 Helm/manual ownership을 정리해 accidental deletion 위험을 줄입니다."
+    }
+  ],
+  "implementation": [
+    "repository / naming / environment 구조 정리",
+    "AppProject / Application 구성",
+    "인프라 component를 환경별로 단계적 migration",
+    "기존 Helm release / manifest ownership 정리",
+    "다수 ArgoCD 운영 구조의 shared ArgoCD 통합 작업 지원"
+  ],
+  "validation": [
+    "ArgoCD sync 상태와 실제 Kubernetes object 비교",
+    "기존 management path 제거 전 서비스 영향 확인",
+    "기존 resource가 다른 Application에서 사용 중인지 확인 후 정리"
+  ],
+  "outcome": [
+    "인프라 구성 변경 이력을 Git에서 추적할 수 있는 운영 모델로 이전했습니다.",
+    "기존 수동 관리와 GitOps가 겹치는 구간을 별도 migration 절차로 관리했습니다."
+  ],
+  "technologies": [
+    "Kubernetes",
+    "ArgoCD",
+    "GitLab",
+    "Helm",
+    "Kustomize",
+    "GitOps",
+    "Bash"
+  ],
+  "related_cases": [
+    "argocd-resource-ownership"
+  ],
+  "related_repository": "",
+  "evidence_links": [
+    {
+      "label": "Migration playbook",
+      "path": "evidence/04-kubernetes-gitops-migration/docs/migration-playbook.md"
+    },
+    {
+      "label": "Sanitized AppProject template",
+      "path": "evidence/04-kubernetes-gitops-migration/examples/appproject-template.yaml"
+    },
+    {
+      "label": "Credential-safe repository script",
+      "path": "evidence/04-kubernetes-gitops-migration/scripts/create-argocd-repositories.sh"
+    },
+    {
+      "label": "Security notes",
+      "path": "evidence/04-kubernetes-gitops-migration/SECURITY-NOTES.md"
+    }
+  ]
+}

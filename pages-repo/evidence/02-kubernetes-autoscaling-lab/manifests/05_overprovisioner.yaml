@@ -1,0 +1,102 @@
+# ============================================================
+# 05_overprovisioner.yaml
+# 목적: Cluster Overprovisioner 패턴 구현
+# 원리: 낮은 우선순위의 "placeholder" Pod으로 여유 용량 확보
+#       → 실제 부하 Pod 생성 시 placeholder가 Evict되고 즉시 배치 가능
+#       → placeholder가 Pending → CA가 미리 노드 추가
+#
+# 실사례: 카카오, 당근마켓 등 트래픽 급증 서비스에서 사용하는 패턴
+# 출처: https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-configure-overprovisioning-with-cluster-autoscaler
+#
+# 적용: kubectl apply -f 05_overprovisioner.yaml
+# ============================================================
+
+---
+# Step 1: 낮은 우선순위 클래스 생성 (placeholder용)
+# 실제 워크로드보다 낮아야 Evict 됨
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: overprovisioning-priority
+value: -1          # 기본 PriorityClass(0)보다 낮음 → 실제 Pod에게 자리 양보
+globalDefault: false
+preemptionPolicy: Never
+description: "Placeholder pods for cluster overprovisioning. Will be evicted when real workloads need the capacity."
+
+---
+# Step 2: 실제 워크로드 우선순위 클래스 (기본 0보다 높게 설정)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: production-workload
+value: 1000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Production workloads - can preempt overprovisioning placeholders"
+
+---
+# Step 3: Overprovisioner Deployment (placeholder)
+# 이 Pod들이 노드에 '빈 슬롯'을 점유
+# 실제 Pod 필요 시 → 이 Pod들이 Evict → 새 배치 → 이 Pod은 Pending → CA 트리거
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-overprovisioner
+  namespace: kube-system    # cluster 수준 리소스는 kube-system에 배치
+  labels:
+    app: cluster-overprovisioner
+    component: overprovisioning
+spec:
+  # 미리 확보할 "여분 노드" 슬롯 수
+  # 예: replicas: 2, 각 Pod = 2CPU/4GB → 2코어/4GB 여유 용량 2세트 확보
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cluster-overprovisioner
+  template:
+    metadata:
+      labels:
+        app: cluster-overprovisioner
+        component: overprovisioning
+    spec:
+      # 낮은 우선순위 → 실제 Pod에게 자리 양보
+      priorityClassName: overprovisioning-priority
+      terminationGracePeriodSeconds: 0   # 즉시 종료 (자리 즉시 반환)
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            # 여기서 설정하는 값 = "미리 확보할 용량"
+            # 노드 스펙의 50~75% 정도가 적당
+            cpu: "1500m"
+            memory: "2Gi"
+          limits:
+            cpu: "1500m"
+            memory: "2Gi"
+      # 각 노드에 하나씩만 배치 (노드당 하나의 슬롯 예약)
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: cluster-overprovisioner
+
+---
+# ──────────────────────────────────────────
+# Overprovisioner 동작 검증:
+#
+# 1) placeholder Pod 배치 확인:
+#    kubectl get pods -n kube-system -l app=cluster-overprovisioner -o wide
+#
+# 2) 대용량 Deployment 배포 시 즉시 배치 확인 (Pending 없이 바로 Running):
+#    time kubectl rollout status deployment/php-apache -n autoscale-test
+#
+# 3) placeholder Eviction 후 Pending 확인 → CA 트리거:
+#    kubectl get pods -n kube-system -l app=cluster-overprovisioner
+#    (일부 Pending 상태 → CA가 새 노드 추가 시작)
+#
+# 4) 새 노드 추가 후 placeholder 재배치 확인:
+#    kubectl get nodes -w
+# ──────────────────────────────────────────
