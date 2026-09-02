@@ -1,7 +1,7 @@
 {
   "slug": "ingress-observability-extension",
   "order": 3,
-  "title": "Kubernetes Ingress Observability Extension",
+  "title": "Kubernetes Ingress Observability / 인그레스 관측성 확장",
   "period": "2025.07 – 2025.08",
   "type": "PRODUCTION-ORIENTED ENGINEERING",
   "summary": "기본 Prometheus 구성에서 직접 보이지 않던 Contour / Envoy 및 HTTPProxy FQDN 정보를 custom scrape와 exporter로 관측 가능하게 만든 작업입니다.",

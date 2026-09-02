@@ -17,8 +17,8 @@ A platform policy eventually needs exceptions: platform-managed namespaces, migr
 Example exclusion labels:
 
 ```text
-policy.platform/exclude=true
-policy.platform/exclude-reason=migration
+policy-exclude=true
+policy-exclude-reason=migration
 ```
 
 ### Namespace policy
@@ -28,7 +28,7 @@ matchConditions:
 - name: not-excluded
   expression: >
     !has(object.metadata.labels) ||
-    !('policy.platform/exclude' in object.metadata.labels)
+    !('policy-exclude' in object.metadata.labels)
 ```
 
 ### Workload policy
@@ -39,7 +39,7 @@ matchConditions:
   expression: >
     namespaceObject == null ||
     !has(namespaceObject.metadata.labels) ||
-    !('policy.platform/exclude' in namespaceObject.metadata.labels)
+    !('policy-exclude' in namespaceObject.metadata.labels)
 ```
 
 `namespaceObject` allows a namespaced workload policy to inspect labels on the owning Namespace. A Binding `namespaceSelector` is useful for namespaced resources, but it cannot by itself exclude a Namespace object from a policy targeting Namespace CREATE/UPDATE because Namespace is cluster-scoped.
@@ -47,13 +47,13 @@ matchConditions:
 ## Operations
 
 ```bash
-kubectl label ns sample-app-ns policy.platform/exclude=true
-kubectl label ns sample-app-ns policy.platform/exclude-reason=migration
-kubectl get ns -l policy.platform/exclude=true --show-labels
+kubectl label ns sample-app-ns policy-exclude=true
+kubectl label ns sample-app-ns policy-exclude-reason=migration
+kubectl get ns -l policy-exclude=true --show-labels
 
 # remove exception
-kubectl label ns sample-app-ns policy.platform/exclude-
-kubectl label ns sample-app-ns policy.platform/exclude-reason-
+kubectl label ns sample-app-ns policy-exclude-
+kubectl label ns sample-app-ns policy-exclude-reason-
 ```
 
 Recommended practice: review exclusions periodically and remove temporary exceptions after the original reason no longer applies.

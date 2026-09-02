@@ -1,47 +1,29 @@
-# Kubernetes Admission Guardrails
+# Kubernetes Admission Guardrails / 운영 정책 가드레일
 
-**Evidence label:** SANITIZED PRODUCTION-ORIENTED EXAMPLE
+**Evidence label:** SANITIZED PRODUCTION CASE
 
-This project shows how Kubernetes admission controls were designed to enforce workload and namespace standards at API admission time rather than relying only on post-deployment checks.
+## 운영 적용 범위
 
-## Problem
+운영 환경에는 `ValidatingAdmissionPolicy` + CEL 기반 정책을 적용했습니다. 별도의 Mutating Webhook은 운영 환경에 적용하지 않았습니다. Mutation은 테스트/설계 단계에서 검토한 내용으로만 분리합니다.
 
-Platform standards needed to be enforced consistently across application namespaces and workloads. Some rules should block deployment, some should only warn, and one namespace label needed mutation rather than validation.
+## Production policy
 
-## Design
+- Deployment / StatefulSet / DaemonSet의 CPU·Memory requests/limits 검증
+- VAP + VAPBinding으로 Deny/Warn 동작 관리
+- `policy-exclude=true`가 부여된 Namespace는 guardrail 영향에서 제외
+- `--dry-run=server`로 실제 API admission 경로를 통과시키며 CEL 정책 동작 검증
 
-The supplied design separates the responsibilities:
+## ResourceQuota와의 관계
 
-- `ValidatingAdmissionPolicy` + CEL for deny/warn checks
-- `ValidatingAdmissionPolicyBinding.validationActions` for enforcement mode
-- Mutating admission webhook for an automatically injected Pod Security label
-- label-based policy exclusions so exceptions remain visible and auditable
+Admission Policy와 ResourceQuota는 별도 제어 계층입니다. `--dry-run=server`에서 VAP 검증이 정상이어도 실제 리소스 생성 시 ResourceQuota가 부족하면 배포는 거부될 수 있습니다. 운영 테스트에서 두 동작을 분리해 확인했습니다.
 
-## Guardrail examples
+## 테스트/설계 범위
 
-- regular containers must define CPU/memory requests and limits
-- initContainer resource omissions can be surfaced as warnings
-- service-account-token mounting can be explicitly controlled
-- namespace labels can be required or warned on
-- selected namespaces can be excluded with a visible label instead of hard-coded policy edits
-
-## Why this is useful portfolio evidence
-
-This is not just a YAML example. It demonstrates:
-
-1. understanding of Kubernetes API admission order
-2. CEL expression design
-3. difference between mutation and validation
-4. rollout strategy (`Audit -> Warn -> Deny`)
-5. exception governance
+Pod Security label 자동 주입을 위한 Mutating Webhook 설계도 검토했지만 고객 운영 환경에는 적용하지 않았습니다. 공개 문서에서는 Production 적용 내용과 테스트 설계를 명확히 구분합니다.
 
 ## Files
 
-- `manifests/workload-guardrails.yaml` - sanitized VAP/VAPBinding implementation supplied in the working material
-- `docs/policy-design.md` - public summary of the design document
-- `docs/validation-actions.md` - Deny/Warn/Audit operational model
-- `docs/exclusion-strategy.md` - exception-handling design
-
-## Evidence gap
-
-The design document refers to namespace-policy YAML and a mutating webhook implementation. Those source files were not part of the supplied code bundle, so they are intentionally not fabricated here.
+- `manifests/workload-guardrails.yaml` — sanitized VAP/VAPBinding example
+- `docs/exclusion-strategy.md` — Namespace exception strategy
+- `docs/validation-actions.md` — Deny/Warn/Audit 운영 모델
+- `docs/policy-design.md` — Production과 test design의 경계

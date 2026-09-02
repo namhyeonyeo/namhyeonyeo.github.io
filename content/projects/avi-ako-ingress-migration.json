@@ -1,7 +1,7 @@
 {
   "slug": "avi-ako-ingress-migration",
   "order": 1,
-  "title": "Enterprise Kubernetes Ingress Architecture Migration",
+  "title": "Kubernetes Ingress Architecture Migration / 인그레스 아키텍처 전환",
   "period": "2024.11 – 2025.02 / 2026 migration work",
   "type": "PRODUCTION PROJECT",
   "summary": "고객의 네트워크 분리 및 플랫폼 표준화 요구를 기존 Tanzu Ingress 구조의 제약 분석으로 연결하고, Contour/HTTPProxy 중심 구조를 AKO / AVI 기반 Ingress 구조로 전환·검증한 작업입니다.",

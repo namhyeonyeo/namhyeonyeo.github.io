@@ -1,11 +1,11 @@
 {
   "slug": "admission-guardrails",
   "order": 1,
-  "title": "Kubernetes Admission Guardrails",
-  "label": "PLATFORM POLICY DESIGN",
-  "status": "Sanitized design + manifest",
+  "title": "Kubernetes Admission Guardrails / 운영 정책 가드레일",
+  "label": "PRODUCTION · POLICY / GOVERNANCE",
+  "status": "운영 적용 완료 · Production은 VAP + CEL",
   "category": "Policy / Governance",
-  "objective": "ValidatingAdmissionPolicy(CEL)와 MutatingWebhook의 역할을 분리해 Namespace와 Workload 표준을 API admission 시점에서 강제·경고·자동 보정하는 구조를 설계합니다.",
+  "objective": "Kubernetes API admission 단계에서 workload resource 표준과 운영 예외 정책을 CEL 기반 ValidatingAdmissionPolicy로 관리합니다. 운영 환경에는 webhook을 적용하지 않았고, mutation 관련 webhook은 별도 테스트/설계 범위로만 다뤘습니다.",
   "environment": [
     "Kubernetes v1.33",
     "ValidatingAdmissionPolicy",
@@ -13,19 +13,22 @@
     "MutatingAdmissionWebhook"
   ],
   "implementation": [
-    "Namespace label Deny/Warn policy 설계",
-    "Deployment / StatefulSet / DaemonSet resource request/limit 및 ServiceAccount token guardrail",
-    "Mutation이 필요한 Pod Security label은 webhook으로 분리",
-    "Audit → Warn → Deny rollout model 정리"
+    "운영 환경에 ValidatingAdmissionPolicy + CEL 기반 workload guardrail 적용",
+    "Deployment / StatefulSet / DaemonSet의 CPU·Memory requests/limits 누락을 admission 단계에서 검증",
+    "정책 영향 없이 테스트해야 하는 Namespace에는 policy-exclude=true 라벨을 부여해 예외 처리",
+    "ResourceQuota와 Admission Policy를 별도 제어 계층으로 운영하고 dry-run과 실제 배포 결과를 구분해 검증",
+    "MutatingWebhook은 테스트 설계에서 검토했지만 실제 고객사 운영 환경에는 적용하지 않음"
   ],
   "validation": [
-    "VAP typeChecking 확인",
-    "Deny/Warn/Mutation test scenario 설계",
-    "Webhook failurePolicy / TLS / exception handling 검토"
+    "--dry-run=server로 실제 API admission 경로에서 CEL policy 위반/허용 동작 확인",
+    "policy-exclude=true Namespace에서 guardrail 제외 동작 확인",
+    "실제 배포 시 ResourceQuota가 별도로 요청을 거부할 수 있음을 확인해 Admission Policy와 Quota의 역할을 분리 검증",
+    "VAP typeChecking과 Binding validationActions 확인"
   ],
   "lessons": [
-    "Validation과 Mutation은 같은 문제처럼 보여도 Kubernetes API admission에서 역할과 failure mode가 다릅니다.",
-    "정책은 처음부터 Deny로 적용하기보다 Audit / Warn 단계에서 영향도를 확인하는 것이 안전합니다."
+    "Admission Policy와 ResourceQuota는 서로 다른 제어 계층이므로 dry-run 성공이 실제 배포 성공을 의미하지 않습니다.",
+    "운영 예외는 CEL에 Namespace 이름을 하드코딩하기보다 명시적인 label로 관리해야 추적과 회수가 쉽습니다.",
+    "운영 환경에서는 필요한 기능만 적용하고, mutation처럼 별도 운영 부담이 생기는 기능은 테스트 설계와 Production 적용을 구분했습니다."
   ],
   "repository": "CHANGE_ME.github.io",
   "evidence_links": [

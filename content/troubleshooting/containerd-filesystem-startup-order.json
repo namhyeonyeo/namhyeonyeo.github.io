@@ -1,7 +1,7 @@
 {
   "slug": "containerd-filesystem-startup-order",
-  "order": 2,
-  "title": "containerd Restart Was a Workaround: Filesystem Startup Order RCA",
+  "order": 3,
+  "title": "containerd Startup Order RCA / Filesystem 마운트 순서 문제",
   "date": "Production incident · date omitted",
   "category": "Linux / Container Runtime",
   "evidence_status": "WBS-backed sanitized case",

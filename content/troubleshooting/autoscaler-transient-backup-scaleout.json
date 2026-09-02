@@ -1,0 +1,69 @@
+{
+  "slug": "autoscaler-transient-backup-scaleout",
+  "order": 1,
+  "title": "Cluster Autoscaler Unexpected Scale-out / 백업 작업 중 불필요한 노드 확장 RCA",
+  "date": "Production incident · 2025.01",
+  "category": "Autoscaling / Scheduling / Storage",
+  "evidence_status": "Production RCA · sanitized case",
+  "environment": [
+    "Kubernetes",
+    "Cluster Autoscaler",
+    "Kasten Backup",
+    "PVC / PV",
+    "Scheduler"
+  ],
+  "symptoms": [
+    "정기 백업 시간대에 서비스 부하 증가가 뚜렷하지 않은데 Worker Node가 추가되었습니다.",
+    "추가된 Node는 짧은 시간 뒤 다시 불필요한 Node로 판단되어 scale-in 되었습니다."
+  ],
+  "architecture": "Backup workload → PVC 상태 전이 → Pod scheduling\n                       ↓\n               Unschedulable 판단\n                       ↓\n             Cluster Autoscaler\n                       ↓\n                  Node scale-out",
+  "investigation": [
+    "Node 생성 시점과 Cluster Autoscaler 로그, Kasten 백업 스케줄을 같은 타임라인으로 맞췄습니다.",
+    "scale-out을 유발한 Pending/Unschedulable Pod와 PVC 상태 변화를 추적했습니다.",
+    "백업 Pod 생성 직후 PVC가 짧은 시간 Unbound 상태였다가 Bound로 전환되는 구간을 확인했습니다.",
+    "신규 Node가 실제로 Ready가 될 시점에는 원래의 scheduling 조건이 이미 해소됐는지 확인했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "실제 CPU/Memory 부족",
+      "text": "백업 시간대의 workload resource pressure도 함께 확인했지만 Node 추가 시점과 scheduling event를 분리해 분석했습니다."
+    },
+    {
+      "label": "CA 오동작",
+      "text": "Autoscaler 자체 오류보다 당시 scheduler가 전달한 Unschedulable 상태에 정상 반응했을 가능성을 우선 검증했습니다."
+    },
+    {
+      "label": "PVC lifecycle과 CA 평가 시점의 경합",
+      "text": "일시적인 PVC 미바인딩 구간이 Pod를 Unschedulable로 만들고, 이 짧은 상태를 CA가 scale-out 신호로 받아들이는 흐름이 관찰됐습니다."
+    }
+  ],
+  "evidence": [
+    "백업 실행 시점과 Node scale-out 시점이 겹쳤습니다.",
+    "관련 PVC가 Unbound → Bound로 짧게 상태 전이하는 동안 Pod scheduling이 지연됐습니다.",
+    "조건 해소 뒤 추가 Node가 장시간 필요하지 않아 다시 scale-down 됐습니다."
+  ],
+  "root_cause": "Cluster Autoscaler의 오동작이라기보다, 백업 workload가 생성되는 순간의 일시적인 PVC/scheduling 미해결 상태를 CA가 정상적인 Unschedulable 신호로 평가하면서 발생한 transient scale-out으로 정리했습니다.",
+  "resolution": [
+    "CA 로그, Pod event, PVC 상태와 백업 스케줄을 함께 보는 RCA 절차를 정리했습니다.",
+    "백업용 StorageClass의 volume binding 시점과 WaitForFirstConsumer 적용 가능성을 개선 항목으로 검토했습니다.",
+    "일시적인 Pending workload가 즉시 scale-out으로 이어지지 않도록 delay/tuning은 실제 영향도를 확인한 뒤 적용하도록 검토했습니다."
+  ],
+  "validation": [
+    "동일 시간대의 backup/PVC/Pod/CA event를 상호 비교",
+    "추가 Node가 생성된 뒤 workload가 실제로 해당 Node를 필요로 했는지 확인",
+    "scale-in 시점까지 추적해 일시적 scale-out임을 확인"
+  ],
+  "prevention": [
+    "Autoscaler RCA 시 CPU/Memory만 보지 않고 Pending reason, PVC binding, PDB, affinity 등 scheduler input을 함께 확인합니다.",
+    "Backup/Batch workload처럼 짧게 생성되는 Pod는 CA trigger와 storage provisioning timing을 함께 검토합니다."
+  ],
+  "lessons": [
+    "Autoscaler가 Node를 추가했다는 사실만으로 resource shortage를 원인으로 단정할 수 없습니다. CA가 어떤 Unschedulable signal을 받았는지를 먼저 확인해야 합니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "Sanitized RCA note",
+      "path": "evidence/06-sre-troubleshooting-casebook/cases/06-autoscaler-transient-backup-scaleout.md"
+    }
+  ]
+}

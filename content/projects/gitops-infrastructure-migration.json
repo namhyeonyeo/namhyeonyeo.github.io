@@ -1,7 +1,7 @@
 {
   "slug": "gitops-infrastructure-migration",
   "order": 2,
-  "title": "Kubernetes Infrastructure GitOps Migration",
+  "title": "Kubernetes Infrastructure GitOps Migration / 인프라 GitOps 전환",
   "period": "2026.05 – 2026.06 (initial migration set)",
   "type": "PRODUCTION PROJECT",
   "summary": "Jumpbox에서 수동으로 관리하던 Kubernetes 인프라 리소스의 ownership을 GitLab + ArgoCD 기반 GitOps 모델로 단계적으로 이전한 작업입니다.",

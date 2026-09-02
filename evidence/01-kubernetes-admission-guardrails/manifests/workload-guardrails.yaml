@@ -5,9 +5,9 @@
 #            under Namespaces ending with -ns
 #
 # Exclusion: Add label to the owning Namespace (not the workload)
-#   Apply  : kubectl label ns <name> policy.platform/exclude=true
-#   Check  : kubectl get ns -l policy.platform/exclude=true --show-labels
-#   Remove : kubectl label ns <name> policy.platform/exclude-
+#   Apply  : kubectl label ns <name> policy-exclude=true
+#   Check  : kubectl get ns -l policy-exclude=true --show-labels
+#   Remove : kubectl label ns <name> policy-exclude-
 #
 # Rules:
 #   DENY : containers must define resources.requests/limits cpu,memory
@@ -31,7 +31,7 @@ metadata:
     description: >
       Deny Deployment/StatefulSet/DaemonSet under -ns Namespaces when regular
       containers do not define resources.requests/limits for cpu and memory.
-      All validations are skipped if the owning Namespace has policy.platform/exclude label.
+      All validations are skipped if the owning Namespace has policy-exclude label.
 spec:
   failurePolicy: Fail
 
@@ -49,7 +49,7 @@ spec:
     expression: >
       namespaceObject == null ||
       !has(namespaceObject.metadata.labels) ||
-      !('policy.platform/exclude' in namespaceObject.metadata.labels)
+      !('policy-exclude' in namespaceObject.metadata.labels)
 
   validations:
   # ---- WL-1 : containers - resources.requests.cpu ---------------
@@ -114,7 +114,7 @@ spec:
         - kube-public
         - kube-node-lease
         - policy-system
-      - key: policy.platform/exclude
+      - key: policy-exclude
         operator: DoesNotExist
 
 ---
@@ -151,7 +151,7 @@ spec:
     expression: >
       namespaceObject == null ||
       !has(namespaceObject.metadata.labels) ||
-      !('policy.platform/exclude' in namespaceObject.metadata.labels)
+      !('policy-exclude' in namespaceObject.metadata.labels)
 
   variables:
   - name: initContainers
@@ -223,5 +223,5 @@ spec:
         - kube-public
         - kube-node-lease
         - policy-system
-      - key: policy.platform/exclude
+      - key: policy-exclude
         operator: DoesNotExist

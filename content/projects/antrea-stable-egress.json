@@ -1,7 +1,7 @@
 {
   "slug": "antrea-stable-egress",
   "order": 5,
-  "title": "Stable Outbound Source IP with Antrea Egress",
+  "title": "Antrea Egress / 고정 Outbound Source IP 설계",
   "period": "2023.09 – 2024.02",
   "type": "PRODUCTION PROJECT",
   "summary": "노드 lifecycle과 외부 방화벽 정책을 분리하기 위해 선택된 Pod 트래픽을 고정 Egress IP로 SNAT하고 remote-side packet capture로 검증했습니다.",

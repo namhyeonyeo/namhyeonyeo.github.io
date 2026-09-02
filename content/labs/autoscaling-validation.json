@@ -1,11 +1,11 @@
 {
   "slug": "autoscaling-validation",
   "order": 2,
-  "title": "HPA + Cluster Autoscaler Validation Lab",
-  "label": "LAB / PRODUCTION-ORIENTED VALIDATION",
-  "status": "Manifests + runbook available",
+  "title": "HPA + Cluster Autoscaler / 운영 적용 전 기능 검증과 설치",
+  "label": "PRODUCTION ROLLOUT · VALIDATION",
+  "status": "사전 기능 검증 후 운영 환경 설치",
   "category": "Autoscaling / Scheduling",
-  "objective": "HTTP load → HPA replica 증가 → Pending scheduling pressure → Cluster Autoscaler node scale-out → scale-down까지 전체 흐름과 blocker 조건을 재현합니다.",
+  "objective": "운영 환경에 Cluster Autoscaler를 적용하기 전에 HPA, Pending scheduling, node scale-out/scale-down, PDB 및 eviction blocker 등 주요 동작을 단계적으로 검증하고 이후 실제 환경에 설치했습니다.",
   "environment": [
     "Kubernetes",
     "HPA",
@@ -16,18 +16,20 @@
     "ResourceQuota"
   ],
   "implementation": [
-    "light/heavy/spike load generator",
-    "Pending Pod / oversized Pod를 이용한 CA trigger",
-    "PDB / safe-to-evict / emptyDir scale-down blocker",
-    "negative PriorityClass 기반 overprovisioning placeholder"
+    "고객사와 유사한 테스트 환경에서 HPA와 Cluster Autoscaler 구성 검증",
+    "부하 증가 → HPA replica 증가 → Pending Pod → CA node scale-out 연계 확인",
+    "oversized Pod / nodeSelector / scheduling pressure를 이용한 scale-out trigger 검증",
+    "PDB, safe-to-evict, emptyDir 등 scale-down blocker 조건 검증",
+    "기능 점검 결과를 바탕으로 실제 운영 Kubernetes 환경에 Cluster Autoscaler 설치"
   ],
   "validation": [
-    "HPA target/replica 관찰",
-    "CA log와 node provisioning timeline 관찰",
-    "scale-down 가능/불가 Pod 조건 비교"
+    "HPA target/replica 변화와 CA log를 동시에 관찰",
+    "신규 Node가 Ready가 된 뒤 Pending Pod가 scheduling되는 흐름 확인",
+    "부하 제거 후 scale-down 및 blocker 조건별 동작 확인",
+    "운영 반영 후 실제 workload 환경에서 scale-out/scale-in 동작 모니터링"
   ],
   "lessons": [
-    "Autoscaling은 CPU metric만의 문제가 아니라 scheduling, requests, PDB, local storage, stabilization timing을 함께 봐야 합니다."
+    "Cluster Autoscaler는 단순 CPU 임계값이 아니라 scheduler가 판단한 unschedulable Pod를 기반으로 동작하므로 requests, PVC, PDB, local storage 같은 scheduling 조건을 함께 봐야 합니다."
   ],
   "repository": "CHANGE_ME.github.io",
   "evidence_links": [

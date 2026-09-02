@@ -1,7 +1,7 @@
 {
   "slug": "enterprise-multitenant-kubernetes-platform",
   "order": 4,
-  "title": "Enterprise Multi-Tenant Kubernetes Platform",
+  "title": "Enterprise Multi-Tenant Kubernetes Platform / 멀티테넌트 플랫폼 구축",
   "period": "2022.04 – 2022.12",
   "type": "PRODUCTION PROJECT",
   "summary": "PROD / DR / DEV / STG / Sandbox 환경을 고려한 Tanzu 기반 Kubernetes 플랫폼을 구축하고 Ingress, Registry, Load Balancer, Storage 연동을 하나의 운영 플랫폼으로 구성한 프로젝트입니다.",

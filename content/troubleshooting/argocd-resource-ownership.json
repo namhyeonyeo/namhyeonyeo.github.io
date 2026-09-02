@@ -1,7 +1,7 @@
 {
   "slug": "argocd-resource-ownership",
   "order": 5,
-  "title": "GitOps Migration: Avoiding Dual Ownership and Accidental Resource Deletion",
+  "title": "GitOps Ownership Migration / 이중 관리 및 리소스 삭제 방지",
   "date": "2026",
   "category": "GitOps / ArgoCD / Helm",
   "evidence_status": "Sanitized workflow evidence",

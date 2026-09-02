@@ -5,8 +5,8 @@
   "name": "NamHyeon Yeo",
   "nameKo": "여남현",
   "role": "Cloud Platform / SRE Engineer",
-  "tagline": "Building reliable Kubernetes platforms through architecture, automation, observability and troubleshooting.",
-  "intro": "온프레미스 엔터프라이즈 환경에서 Kubernetes 플랫폼을 구축하고 운영해 왔습니다. 제품 설치 자체보다 구조의 제약을 이해하고, 장애 원인을 좁히고, 반복되는 운영 작업을 표준화·자동화하는 데 관심이 많습니다.",
+  "tagline": "온프레미스 Kubernetes 플랫폼을 구축하고 운영해 왔습니다.",
+  "intro": "금융·엔터프라이즈 환경에서 Kubernetes/Tanzu 플랫폼을 구축·운영하며 네트워크 구조 개선, GitOps 전환, 관측성 확장, 운영 정책, 장애 분석과 자동화를 경험했습니다.",
   "coreTechnologies": [
     "Kubernetes",
     "Linux",
@@ -24,11 +24,11 @@
     },
     {
       "value": "Production Kubernetes",
-      "label": "Enterprise / Financial Platform"
+      "label": "Enterprise · Financial Environment"
     },
     {
-      "value": "Build → Operate → Improve",
-      "label": "Platform Engineering"
+      "value": "Platform Operations",
+      "label": "Networking · GitOps · Observability"
     },
     {
       "value": "CKA",
@@ -104,7 +104,7 @@
     "engineeringNotes": ""
   },
   "resume": {
-    "summary": "Kubernetes 및 VMware Tanzu 기반의 온프레미스 플랫폼을 설계·구축·운영하며 네트워크, 스토리지, GitOps, 관측성, 정책 및 장애 분석 영역을 함께 다뤄온 Cloud Platform Engineer입니다. 구축 이후의 운영 문제를 구조적으로 좁히고 자동화·표준화하는 경험을 SRE / Platform Engineering 역량으로 확장하고 있습니다.",
-    "downloadNote": "이 페이지는 포트폴리오용 요약입니다. PDF 이력서는 최신 버전 정리 후 연결할 예정입니다."
+    "summary": "2020년부터 온프레미스 Kubernetes 플랫폼 구축과 운영을 담당해 왔습니다. 초기에는 Tanzu 기반 플랫폼 구축이 중심이었고, 이후 네트워크 아키텍처 전환, GitOps, Observability, Admission Policy, Autoscaling 운영과 장애 RCA로 역할을 확장했습니다.",
+    "downloadNote": "Home에 경력 요약을 통합했습니다."
   }
 }

@@ -1,7 +1,7 @@
 {
   "slug": "iac-study",
   "order": 3,
-  "title": "Infrastructure as Code Study",
+  "title": "Infrastructure as Code / Terraform·Ansible Self Study",
   "label": "SELF STUDY",
   "status": "Ongoing",
   "category": "IaC",

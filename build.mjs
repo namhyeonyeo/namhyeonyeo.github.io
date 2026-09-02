@@ -187,13 +187,12 @@ const field = (label, body) => (body ? `<section class="field"><h2>${esc(label)}
 
 const NAV = [
   ['Home', ''],
-  ['Experience', 'experience/'],
-  ['Projects', 'projects/'],
-  ['Troubleshooting', 'troubleshooting/'],
-  ['Labs', 'labs/'],
-  ['Tools', 'tools/'],
-  ['About', 'about/'],
-  ['Resume', 'resume/'],
+  ['Experience · 경력', 'experience/'],
+  ['Projects · 프로젝트', 'projects/'],
+  ['Troubleshooting · 장애 분석', 'troubleshooting/'],
+  ['Practices · 운영·검증', 'labs/'],
+  ['Tools · 자동화', 'tools/'],
+  ['About · 소개', 'about/'],
 ];
 
 const pages = [];
@@ -239,7 +238,7 @@ ${main}
   <p class="footer-links">
     <a href="${esc(site.contact.github)}">GitHub</a>
     ${site.contact.engineeringNotes ? `<a href="${esc(site.contact.engineeringNotes)}">Engineering Notes</a>` : ''}
-    <a href="${url('resume/')}">Resume</a>
+    <a href="mailto:${esc(site.contact.email)}">Email</a>
   </p>
   <p class="footer-note">Production 사례의 고객사 정보와 네트워크 식별자는 모두 제거했습니다.</p>
 </footer>
@@ -287,17 +286,25 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
     <a class="cta-primary" href="${url('projects/')}">View Projects</a>
     <a href="${url('troubleshooting/')}">Troubleshooting</a>
     <a href="${esc(site.contact.github)}">GitHub</a>
-    <a href="${url('resume/')}">Resume</a>
+    <a href="mailto:${esc(site.contact.email)}">Email</a>
   </p>
 </section>
 <section class="stats">${highlights}</section>
+<section class="home-section resume-snapshot">
+  <div class="section-kicker"><span>01</span><h2>경력 요약 / Resume Snapshot</h2></div>
+  ${field('Profile / 소개', para(site.resume.summary))}
+  ${field('Experience / 경력', `<p class="entry-meta"><strong>${esc(experience.positions[0].company)}</strong> · ${esc(experience.positions[0].role)} · ${esc(experience.positions[0].period)}</p>${bullets(experience.positions[0].responsibilities.slice(0, 5))}<p class="more"><a href="${url('experience/')}">상세 경력 보기 →</a></p>`)}
+  ${field('Core Skills / 핵심 역량', `<div class="skills">${site.skills.map((g) => `<div class="skill-group"><h3>${esc(g.group)}</h3>${tags(g.items)}</div>`).join('')}</div>`)}
+  ${field('Certification / 자격', `<ul class="bullets">${experience.certifications.map((c) => `<li>${esc(c.name)} · ${esc(c.date)}</li>`).join('')}</ul>`)}
+  ${field('Contact / 연락처', `<ul class="bullets"><li>Email · <a href="mailto:${esc(site.contact.email)}">${esc(site.contact.email)}</a></li><li>GitHub · <a href="${esc(site.contact.github)}">${esc(site.contact.github)}</a></li></ul>`)}
+</section>
 <section class="home-section">
-  <div class="section-kicker"><span>01</span><h2>Selected Engineering Work</h2></div>
+  <div class="section-kicker"><span>02</span><h2>주요 프로젝트 / Selected Engineering Work</h2></div>
   <ul class="index-list large featured-grid">${featuredProjects}</ul>
   <p class="more"><a href="${url('projects/')}">모든 프로젝트 보기 →</a></p>
 </section>
 <section class="home-section">
-  <div class="section-kicker"><span>02</span><h2>Troubleshooting Casebook</h2></div>
+  <div class="section-kicker"><span>03</span><h2>장애 분석 / Troubleshooting Casebook</h2></div>
   <ul class="index-list">${featuredCases}</ul>
   <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기 →</a></p>
 </section>`;
@@ -314,11 +321,11 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
   <p class="entry-meta">${esc(p.role)}${p.team ? ' · ' + esc(p.team) : ''}</p>
   <p class="entry-meta">${isNeedData(p.period) ? needTag(p.period) : esc(p.period)}</p>
   ${para(p.summary)}
-  <h3>Key responsibilities</h3>
+  <h3>Key responsibilities / 주요 역할</h3>
   ${bullets(p.responsibilities)}
-  <h3>Clients</h3>
+  <h3>Clients / 환경</h3>
   ${para(p.clients)}
-  <h3>Representative projects</h3>
+  <h3>Representative projects / 대표 프로젝트</h3>
   <ul class="index-list">${p.projectRefs
     .map((slug) => {
       const proj = projects.find((x) => x.slug === slug);
@@ -363,9 +370,9 @@ ${field('Education', `<ul class="bullets">${edu}</ul>`)}`;
 
   page({
     path: 'projects/',
-    title: 'Projects',
+    title: 'Projects / 프로젝트',
     description: 'Production Kubernetes 플랫폼 구축·운영 프로젝트',
-    main: `<header class="page-head"><h1>Projects</h1><p>실제 운영 환경에서 수행한 대표 프로젝트입니다. 무엇을 설치했는지보다 어떤 제약 아래에서 어떤 구조를 골랐는지를 적었습니다.</p></header>
+    main: `<header class="page-head"><h1>Projects / 프로젝트</h1><p>실제 운영 환경에서 수행한 대표 프로젝트입니다. 무엇을 설치했는지보다 어떤 제약 아래에서 어떤 구조를 골랐는지를 적었습니다.</p></header>
 <ul class="index-list large">${list}</ul>`,
   });
 
@@ -418,7 +425,7 @@ ${field('Repository', p.related_repository ? `<p><a href="https://github.com/${e
 
   page({
     path: 'troubleshooting/',
-    title: 'Troubleshooting',
+    title: 'Troubleshooting / 장애 분석',
     description: 'Kubernetes 운영 장애 분석 casebook',
     main: `<header class="page-head"><h1>Troubleshooting Casebook</h1><p>운영 중 실제로 겪은 장애를 관측 → 가설 → 검증 → 제거 → 원인 순서로 정리했습니다. 처음부터 답을 알고 쓴 글이 아니라, 그때 어디를 헤맸는지도 남겼습니다.</p></header>
 <ul class="index-list large">${list}</ul>`,
@@ -431,19 +438,19 @@ ${field('Repository', p.related_repository ? `<p><a href="https://github.com/${e
   <h1>${esc(c.title)}</h1>
   <p class="lede">${inline(c.root_cause)}</p>
 </header>
-${field('Environment', tags(c.environment))}
-${field('Symptoms', bullets(c.symptoms))}
-${field('Architecture', diagram(c.architecture))}
-${field('Investigation', bullets(c.investigation))}
-${field('Hypotheses', notes(c.hypotheses))}
-${field('Evidence', bullets(c.evidence))}
-${field('Root cause', para(c.root_cause))}
-${field('Resolution', bullets(c.resolution))}
-${field('Validation', bullets(c.validation))}
-${field('Prevention', bullets(c.prevention))}
-${field('Lessons learned', bullets(c.lessons))}
-${field('Evidence files', evidenceLinks(c.evidence_links))}
-<p class="back"><a href="${url('troubleshooting/')}">← Casebook</a></p>`;
+${field('Environment / 환경', tags(c.environment))}
+${field('Symptoms / 현상', bullets(c.symptoms))}
+${field('Architecture / 구조', diagram(c.architecture))}
+${field('Investigation / 조사', bullets(c.investigation))}
+${field('Hypotheses / 가설', notes(c.hypotheses))}
+${field('Evidence / 근거', bullets(c.evidence))}
+${field('Root Cause / 원인', para(c.root_cause))}
+${field('Resolution / 조치', bullets(c.resolution))}
+${field('Validation / 검증', bullets(c.validation))}
+${field('Prevention / 재발 방지', bullets(c.prevention))}
+${field('Lessons / 배운 점', bullets(c.lessons))}
+${field('Evidence / 관련 파일', evidenceLinks(c.evidence_links))}
+<p class="back"><a href="${url('troubleshooting/')}">← 장애 분석 목록</a></p>`;
     page({ path: `troubleshooting/${c.slug}/`, title: c.title, description: c.symptoms[0], main });
   }
 }
@@ -457,10 +464,10 @@ ${field('Evidence files', evidenceLinks(c.evidence_links))}
   <p class="eyebrow"><span class="label">${esc(l.label)}</span> ${esc(l.category)} · ${esc(l.status)}</p>
   <h2>${esc(l.title)}</h2>
   ${para(l.objective)}
-  <h3>Environment</h3>${tags(l.environment)}
-  <h3>Implementation</h3>${bullets(l.implementation)}
-  <h3>Validation</h3>${bullets(l.validation)}
-  <h3>Lessons</h3>${bullets(l.lessons)}
+  <h3>Environment / 환경</h3>${tags(l.environment)}
+  <h3>Implementation / 구현</h3>${bullets(l.implementation)}
+  <h3>Validation / 검증</h3>${bullets(l.validation)}
+  <h3>Lessons / 배운 점</h3>${bullets(l.lessons)}
   ${evidenceLinks(l.evidence_links)}${l.repository ? `<p class="more"><a href="https://github.com/${esc(site.githubUsername)}/${esc(l.repository.replace('CHANGE_ME', site.githubUsername))}">Repository →</a></p>` : ''}
 </article>`
     )
@@ -468,9 +475,9 @@ ${field('Evidence files', evidenceLinks(c.evidence_links))}
 
   page({
     path: 'labs/',
-    title: 'Labs',
-    description: '자체 학습과 재현 실습 기록',
-    main: `<header class="page-head"><h1>Labs</h1><p>여기 있는 항목은 실무 경험이 아니라 자체 학습입니다. Production 경험과 섞이지 않도록 라벨을 붙여 두었습니다.</p></header>
+    title: 'Practices / 운영·검증',
+    description: '운영 적용, 사전 검증, Self Study를 사실 관계에 따라 구분한 기록',
+    main: `<header class="page-head"><h1>Platform Practices / 운영·검증</h1><p>운영 환경에 실제 적용한 정책·기능, Production 반영 전 검증, Self Study를 같은 섹션에 모으되 각 항목의 라벨로 범위를 명확히 구분합니다.</p></header>
 ${items}`,
   });
 }
@@ -495,9 +502,9 @@ ${items}`,
 
   page({
     path: 'tools/',
-    title: 'Tools',
+    title: 'Tools / 자동화',
     description: '운영 중 만든 점검·자동화 스크립트',
-    main: `<header class="page-head"><h1>Tools</h1><p>운영하면서 같은 확인을 세 번 이상 반복하게 되면 스크립트로 만들었습니다. 전부 <code>kubernetes-operations-toolkit</code> 저장소에 모아 두었습니다.</p></header>
+    main: `<header class="page-head"><h1>Tools / 자동화</h1><p>운영하면서 같은 확인을 세 번 이상 반복하게 되면 스크립트로 만들었습니다. 전부 <code>kubernetes-operations-toolkit</code> 저장소에 모아 두었습니다.</p></header>
 ${items}`,
   });
 }
@@ -507,47 +514,9 @@ ${items}`,
   const body = about.sections
     .map((s) => `<section class="field"><h2>${esc(s.heading)}</h2><div class="field-body">${paras(s.body)}</div></section>`)
     .join('');
-  page({ path: 'about/', title: 'About', main: `<header class="page-head"><h1>About</h1></header>${body}` });
+  page({ path: 'about/', title: 'About / 소개', main: `<header class="page-head"><h1>About / 소개</h1></header>${body}` });
 }
 
-// Resume
-{
-  const skills = site.skills
-    .map((g) => `<div class="skill-group"><h3>${esc(g.group)}</h3>${tags(g.items)}</div>`)
-    .join('');
-
-  const projectLines = projects
-    .map(
-      (p) =>
-        `<li><a href="${url('projects/' + p.slug + '/')}"><span class="idx-title">${esc(p.title)}</span><span class="idx-sum">${esc(p.summary)}</span></a></li>`
-    )
-    .join('');
-
-  const pos = experience.positions[0];
-
-  const main = `
-<header class="page-head"><h1>Resume</h1><p>${esc(site.resume.downloadNote)}</p></header>
-${field('Summary', para(site.resume.summary))}
-${field('Core skills', `<div class="skills">${skills}</div>`)}
-${field(
-  'Experience',
-  `<p class="entry-meta"><strong>${esc(pos.company)}</strong> · ${esc(pos.role)} · ${isNeedData(pos.period) ? needTag(pos.period) : esc(pos.period)}</p>${bullets(pos.responsibilities)}`
-)}
-${field('Selected work', `<ul class="index-list">${projectLines}</ul>`)}
-${field(
-  'Certification',
-  `<ul class="bullets">${experience.certifications.map((c) => `<li>${esc(c.name)}</li>`).join('')}</ul>`
-)}
-${field(
-  'Contact',
-  `<ul class="bullets">
-    <li>Email · ${isNeedData(site.contact.email) ? needTag(site.contact.email) : `<a href="mailto:${esc(site.contact.email)}">${esc(site.contact.email)}</a>`}</li>
-    <li>GitHub · <a href="${esc(site.contact.github)}">${esc(site.contact.github)}</a></li>
-    ${site.contact.linkedin ? `<li>LinkedIn · <a href="${esc(site.contact.linkedin)}">${esc(site.contact.linkedin)}</a></li>` : ''}
-  </ul>`
-)}`;
-  page({ path: 'resume/', title: 'Resume', main });
-}
 
 
 /* ------------------------------------------------------ evidence markdown */
