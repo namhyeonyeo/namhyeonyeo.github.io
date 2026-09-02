@@ -1,11 +1,3 @@
 dist/
 node_modules/
 .DS_Store
-profile-repo/
-
-# Portfolio authoring / internal notes
-00-START-HERE.md
-NEED_DATA.md
-PUBLISH-GUIDE.md
-profile-repo/
-dist/

@@ -27,7 +27,7 @@
     "Validation과 Mutation은 같은 문제처럼 보여도 Kubernetes API admission에서 역할과 failure mode가 다릅니다.",
     "정책은 처음부터 Deny로 적용하기보다 Audit / Warn 단계에서 영향도를 확인하는 것이 안전합니다."
   ],
-  "repository": "namhyeonyeo.github.io",
+  "repository": "CHANGE_ME.github.io",
   "evidence_links": [
     {
       "label": "Workload guardrail manifest",

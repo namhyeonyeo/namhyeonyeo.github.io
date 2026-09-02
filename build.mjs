@@ -51,7 +51,104 @@ const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // 본문에서 `code` 표기만 인라인 코드로 변환합니다.
-const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const inline = (s) => esc(s)
+  .replace(/`([^`]+)`/g, '<code>$1</code>')
+  .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+  .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+// Evidence Markdown is rendered as HTML instead of being served as raw text.
+// This intentionally supports the subset used by this portfolio: headings,
+// paragraphs, lists, tables, blockquotes, fenced code and Mermaid diagrams.
+const markdownToHtml = (source) => {
+  const lines = String(source).replace(/\r\n/g, '\n').split('\n');
+  const out = [];
+  let i = 0;
+
+  const isTableDivider = (line) => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+  const cells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+  const special = (line, next = '') =>
+    /^\s*$/.test(line) || /^```/.test(line) || /^#{1,6}\s+/.test(line) || /^>\s?/.test(line) ||
+    /^\s*[-*+]\s+/.test(line) || /^\s*\d+\.\s+/.test(line) || /^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line) ||
+    (line.includes('|') && isTableDivider(next));
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i += 1; continue; }
+
+    const fence = line.match(/^```\s*([^\s]*)\s*$/);
+    if (fence) {
+      const lang = fence[1] || '';
+      const body = [];
+      i += 1;
+      while (i < lines.length && !/^```/.test(lines[i])) { body.push(lines[i]); i += 1; }
+      if (i < lines.length) i += 1;
+      if (lang.toLowerCase() === 'mermaid') {
+        out.push(`<div class="mermaid">${esc(body.join('\n'))}</div>`);
+      } else {
+        out.push(`<pre class="code"><code${lang ? ` data-language="${esc(lang)}"` : ''}>${esc(body.join('\n'))}</code></pre>`);
+      }
+      continue;
+    }
+
+    const h = line.match(/^(#{1,6})\s+(.+)$/);
+    if (h) {
+      const level = h[1].length;
+      const text = h[2].replace(/\s+#+\s*$/, '');
+      const id = text.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '');
+      out.push(`<h${level} id="${esc(id)}">${inline(text)}</h${level}>`);
+      i += 1; continue;
+    }
+
+    if (/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+      out.push('<hr>'); i += 1; continue;
+    }
+
+    if (line.includes('|') && i + 1 < lines.length && isTableDivider(lines[i + 1])) {
+      const headers = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes('|') && lines[i].trim()) { rows.push(cells(lines[i])); i += 1; }
+      out.push(`<div class="table-wrap"><table><thead><tr>${headers.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${headers.map((_, idx) => `<td>${inline(r[idx] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
+      continue;
+    }
+
+    if (/^>\s?/.test(line)) {
+      const q = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(lines[i].replace(/^>\s?/, '')); i += 1; }
+      out.push(`<blockquote>${q.map((x) => `<p>${inline(x)}</p>`).join('')}</blockquote>`);
+      continue;
+    }
+
+    if (/^\s*[-*+]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) { items.push(lines[i].replace(/^\s*[-*+]\s+/, '')); i += 1; }
+      out.push(`<ul>${items.map((x) => `<li>${inline(x)}</li>`).join('')}</ul>`);
+      continue;
+    }
+
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { items.push(lines[i].replace(/^\s*\d+\.\s+/, '')); i += 1; }
+      out.push(`<ol>${items.map((x) => `<li>${inline(x)}</li>`).join('')}</ol>`);
+      continue;
+    }
+
+    const paragraph = [line.trim()];
+    i += 1;
+    while (i < lines.length && !special(lines[i], lines[i + 1] || '')) {
+      paragraph.push(lines[i].trim()); i += 1;
+    }
+    out.push(`<p>${inline(paragraph.join(' '))}</p>`);
+  }
+  return out.join('\n');
+};
+
+const evidenceRoute = (p) => {
+  if (!p || !p.toLowerCase().endsWith('.md')) return p;
+  if (/\/README\.md$/i.test(p)) return p.replace(/README\.md$/i, '');
+  return p.replace(/\.md$/i, '/');
+};
 
 const isNeedData = (s) => typeof s === 'string' && s.trim().startsWith('NEED_DATA');
 
@@ -83,7 +180,7 @@ const diagram = (t) => (t ? `<pre class="diagram" aria-label="architecture diagr
 const tags = (v) =>
   !v || !v.length ? '' : `<ul class="tags">${v.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
 
-const evidenceLinks = (v) => !v || !v.length ? '' : `<ul class="bullets evidence-links">${v.map((e) => `<li><a href="${url(e.path)}">${esc(e.label)}</a></li>`).join('')}</ul>`;
+const evidenceLinks = (v) => !v || !v.length ? '' : `<ul class="bullets evidence-links">${v.map((e) => `<li><a href="${url(evidenceRoute(e.path))}">${esc(e.label)}<span class="link-arrow">↗</span></a></li>`).join('')}</ul>`;
 
 // 왼쪽 모노 라벨 + 오른쪽 본문. 이 사이트의 기본 조판 단위입니다.
 const field = (label, body) => (body ? `<section class="field"><h2>${esc(label)}</h2><div class="field-body">${body}</div></section>` : '');
@@ -146,6 +243,7 @@ ${main}
   </p>
   <p class="footer-note">Production 사례의 고객사 정보와 네트워크 식별자는 모두 제거했습니다.</p>
 </footer>
+${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true,theme:'dark',securityLevel:'strict'});</script>` : ''}
 </body>
 </html>`;
 
@@ -163,7 +261,15 @@ ${main}
     .map((h) => `<div class="stat"><p class="stat-value">${esc(h.value)}</p><p class="stat-label">${esc(h.label)}</p></div>`)
     .join('');
 
-  const featured = cases
+  const featuredProjects = projects
+    .slice(0, 4)
+    .map(
+      (p, idx) =>
+        `<li><a href="${url('projects/' + p.slug + '/')}"><span class="idx-no">0${idx + 1}</span><span class="idx-cat">${esc(p.type)}</span><span class="idx-title">${esc(p.title)}</span><span class="idx-sum">${esc(p.summary)}</span></a></li>`
+    )
+    .join('');
+
+  const featuredCases = cases
     .slice(0, 3)
     .map(
       (c) =>
@@ -179,18 +285,21 @@ ${main}
   <ul class="tags hero-tags">${site.coreTechnologies.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
   <p class="cta">
     <a class="cta-primary" href="${url('projects/')}">View Projects</a>
-    <a href="${url('troubleshooting/')}">Troubleshooting Casebook</a>
+    <a href="${url('troubleshooting/')}">Troubleshooting</a>
     <a href="${esc(site.contact.github)}">GitHub</a>
     <a href="${url('resume/')}">Resume</a>
   </p>
 </section>
 <section class="stats">${highlights}</section>
-<section class="field">
-  <h2>Selected cases</h2>
-  <div class="field-body">
-    <ul class="index-list">${featured}</ul>
-    <p class="more"><a href="${url('troubleshooting/')}">전체 사례 보기 →</a></p>
-  </div>
+<section class="home-section">
+  <div class="section-kicker"><span>01</span><h2>Selected Engineering Work</h2></div>
+  <ul class="index-list large featured-grid">${featuredProjects}</ul>
+  <p class="more"><a href="${url('projects/')}">모든 프로젝트 보기 →</a></p>
+</section>
+<section class="home-section">
+  <div class="section-kicker"><span>02</span><h2>Troubleshooting Casebook</h2></div>
+  <ul class="index-list">${featuredCases}</ul>
+  <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기 →</a></p>
 </section>`;
   page({ path: '', title: 'Home', main });
 }
@@ -440,11 +549,43 @@ ${field(
   page({ path: 'resume/', title: 'Resume', main });
 }
 
+
+/* ------------------------------------------------------ evidence markdown */
+{
+  const evidenceRoot = join(ROOT, 'evidence');
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    return entry.isDirectory() ? walk(full) : [full];
+  });
+
+  if (existsSync(evidenceRoot)) {
+    for (const sourcePath of walk(evidenceRoot).filter((f) => f.toLowerCase().endsWith('.md'))) {
+      const relFs = sourcePath.slice(evidenceRoot.length + 1).replace(/\\/g, '/');
+      const publicSourcePath = `evidence/${relFs}`;
+      const route = evidenceRoute(publicSourcePath);
+      const markdown = readFileSync(sourcePath, 'utf8');
+      const firstHeading = markdown.match(/^#\s+(.+)$/m)?.[1] || relFs.split('/').pop().replace(/\.md$/i, '');
+      const body = markdownToHtml(markdown);
+      const githubSource = `https://github.com/${site.githubUsername}/${site.githubUsername}.github.io/blob/main/${publicSourcePath}`;
+      const main = `
+<header class="page-head detail evidence-head">
+  <p class="eyebrow">Engineering Evidence</p>
+  <h1>${esc(firstHeading)}</h1>
+  <p class="lede">Sanitized technical evidence connected to the portfolio project.</p>
+  <p class="evidence-source"><a href="${esc(githubSource)}">View Markdown source on GitHub ↗</a></p>
+</header>
+<article class="markdown-body">${body}</article>
+<p class="back"><a href="${url('projects/')}">← Portfolio</a></p>`;
+      page({ path: route, title: firstHeading, description: `${firstHeading} — engineering evidence`, main, wide: true });
+    }
+  }
+}
+
 /* --------------------------------------------------------------- 부가 파일 */
 
 mkdirSync(join(OUT, 'assets'), { recursive: true });
 copyFileSync(join(ROOT, 'assets', 'style.css'), join(OUT, 'assets', 'style.css'));
-if (existsSync(join(ROOT, 'evidence'))) cpSync(join(ROOT, 'evidence'), join(OUT, 'evidence'), { recursive: true });
+if (existsSync(join(ROOT, 'evidence'))) cpSync(join(ROOT, 'evidence'), join(OUT, 'evidence'), { recursive: true, filter: (src) => !src.toLowerCase().endsWith('.md') });
 writeFileSync(join(OUT, '.nojekyll'), '');
 writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);
 writeFileSync(

@@ -29,7 +29,7 @@
   "lessons": [
     "Autoscaling은 CPU metric만의 문제가 아니라 scheduling, requests, PDB, local storage, stabilization timing을 함께 봐야 합니다."
   ],
-  "repository": "namhyeonyeo.github.io",
+  "repository": "CHANGE_ME.github.io",
   "evidence_links": [
     {
       "label": "Test runbook",

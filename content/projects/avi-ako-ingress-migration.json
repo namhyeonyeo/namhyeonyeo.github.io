@@ -79,10 +79,6 @@
     {
       "label": "Migration checklist",
       "path": "evidence/05-avi-ako-ingress-migration/docs/migration-checklist.md"
-    },
-    {
-      "label": "Evidence still to collect",
-      "path": "evidence/05-avi-ako-ingress-migration/EVIDENCE-TO-COLLECT.md"
     }
   ]
 }

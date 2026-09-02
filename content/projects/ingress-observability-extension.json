@@ -1,6 +1,6 @@
 {
   "slug": "ingress-observability-extension",
-  "order": 4,
+  "order": 3,
   "title": "Kubernetes Ingress Observability Extension",
   "period": "2025.07 – 2025.08",
   "type": "PRODUCTION-ORIENTED ENGINEERING",
