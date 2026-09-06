@@ -1,60 +1,79 @@
 {
   "slug": "gitops-infrastructure-migration",
   "order": 2,
-  "title": "Kubernetes Infrastructure GitOps Migration / 인프라 GitOps 전환",
-  "period": "2026.05 – 2026.06 (initial migration set)",
+  "title": "인프라 GitOps 이관 / 일곱 번 반복하던 작업을 Git으로 옮기기",
+  "period": "2026.05 – 2026.07",
   "type": "PRODUCTION PROJECT",
-  "summary": "Jumpbox에서 수동으로 관리하던 Kubernetes 인프라 리소스의 ownership을 GitLab + ArgoCD 기반 GitOps 모델로 단계적으로 이전한 작업입니다.",
+  "team": "이테크시스템 플랫폼 담당 · 애플리케이션 개발업체 협업 / 본인은 인프라 리소스 이관 설계와 실행 담당",
+  "summary": "점프박스에서 kubectl과 Helm으로 관리하던 인프라 리소스의 소유권을 GitLab + ArgoCD로 옮겼습니다. ArgoCD를 설치하는 작업이 아니라, 이미 살아 있는 리소스의 관리 주체를 서비스 중단 없이 바꾸는 작업이었습니다.",
   "context": [
-    "기존에는 YAML과 Helm 기반 인프라 구성요소가 bastion/jumpbox에서 수동으로 관리되는 영역이 있었습니다.",
-    "전환 과정에서 이미 존재하는 리소스를 새 ArgoCD Application이 관리하게 되므로, 단순 재배포보다 ownership 충돌과 삭제 영향도를 제어하는 것이 중요했습니다."
+    "환경이 일곱 개, 클러스터가 스물다섯 개인데 환경끼리 통신이 되지 않습니다. 인프라 컴포넌트 변경 한 건이 일곱 번의 수동 작업이었습니다. 점프박스에 YAML을 두고 kubectl로 반영하는 방식이라 '지금 클러스터에 올라간 것이 어느 파일과 같은지'를 사람이 기억해야 했습니다.",
+    "일부 환경은 워크로드 클러스터마다 ArgoCD가 따로 떠 있었고, 이를 공유 클러스터의 ArgoCD로 통합하는 작업도 함께 진행했습니다.",
+    "전환 대상이 신규 리소스가 아니라 이미 서비스 중인 리소스라는 점이 핵심 제약이었습니다."
   ],
   "problem": [
-    "동일 Kubernetes object가 기존 Helm/manual path와 ArgoCD에서 동시에 관리될 수 있었습니다.",
-    "기존 release 정리 시 이미 GitOps로 adopt된 리소스까지 삭제할 위험이 있었습니다."
+    "같은 Kubernetes 오브젝트를 기존 Helm/수동 경로와 새 ArgoCD Application이 동시에 관리하는 구간이 생깁니다. 두 관리 주체가 같은 오브젝트를 건드리면 예측할 수 없는 상태가 됩니다.",
+    "기존 Helm release나 매니페스트를 정리할 때, 이미 GitOps로 넘어간 리소스까지 함께 삭제될 위험이 있었습니다.",
+    "워크로드 클러스터의 ArgoCD를 제거할 때 Application 리소스에 finalizer가 남아 있으면 삭제가 걸리고, cascade 삭제가 걸리면 관리 대상 리소스까지 같이 지워집니다."
   ],
   "constraints": [
-    "기존 서비스 리소스 유지",
-    "환경별 점진 migration",
-    "내부 GitLab/credential 정보 비공개"
+    "서비스 중인 리소스 유지 — 재생성이 아니라 소유권만 이전",
+    "환경별 점진 이관, 각 단계마다 롤백 가능",
+    "내부 GitLab endpoint와 credential은 스크립트에 하드코딩 불가",
+    "환경 간 통신이 없으므로 GitLab과 ArgoCD가 환경마다 별도 존재"
   ],
   "role": [
-    "수동 배포 리소스 inventory 및 Git 구조 정리",
-    "ArgoCD AppProject / Application 기반 이관 구성",
-    "sync 결과와 실제 Kubernetes 리소스 비교",
-    "이관 이후 기존 ownership/resource 정리 절차 검토"
+    "수동 배포 리소스 전수 조사 및 Git 저장소·네이밍·환경 구조 설계",
+    "ArgoCD AppProject / Application 구성과 환경별 단계적 이관 실행",
+    "이관 전 `kubectl diff`로 Git 정의와 클러스터 실제 상태의 차이를 항목별로 확인",
+    "워크로드 클러스터 ArgoCD 제거 시 non-cascade 삭제 절차 설계 — Application의 finalizer를 먼저 비우고 삭제해 관리 대상 리소스가 함께 지워지지 않게 처리",
+    "Repository 등록을 반복하지 않도록 credential을 환경 변수로 주입하는 등록 스크립트 작성",
+    "Splunk 연동, PowerStore CSM, AKO 구성을 GitOps 관리 대상으로 순차 이관"
   ],
   "architecture": {
-    "diagram": "Before\nJumpbox / Helm / kubectl\n        │\n        ▼\n Kubernetes\n\nAfter\nGitLab repository → ArgoCD → Kubernetes",
+    "diagram": "Before\n  점프박스\n    ├─ kubectl apply\n    └─ helm upgrade\n         │\n         ▼\n     Kubernetes  ← 현재 상태가 어느 파일과 같은지 사람이 기억\n\nAfter\n  GitLab (환경별)\n    │  merge\n    ▼\n  ArgoCD (공유 클러스터)\n    │  sync\n    ▼\n  Kubernetes  ← 변경 이력이 Git에 남음\n\n이관 순서\n  현재 리소스 조사 ─▶ Git 정의 작성 ─▶ kubectl diff로 차이 확인\n    ─▶ Application 연결 (기존 경로 유지) ─▶ sync 결과 검증\n    ─▶ 기존 Helm/수동 소유권 제거",
     "notes": [
-      "핵심은 ArgoCD 설치가 아니라 resource ownership을 수동 운영 경로에서 Git으로 옮기는 과정입니다."
+      "핵심은 ArgoCD 설치가 아니라 소유권 이전 구간을 안전하게 통과하는 것입니다.",
+      "기존 관리 경로를 마지막에 제거하는 순서가 전체 설계의 전제입니다."
     ]
   },
   "decisions": [
     {
-      "label": "Inventory first",
-      "text": "기존 파일을 먼저 삭제하지 않고 현재 리소스와 management path를 inventory한 뒤 Application을 연결합니다."
+      "label": "조사를 먼저 하고 파일을 나중에 지운다",
+      "text": "기존 매니페스트를 먼저 정리하고 Git으로 새로 배포하는 방식이 더 깔끔해 보이지만, 그 사이에 리소스가 삭제되는 구간이 생깁니다. 반대로 갔습니다. 현재 리소스와 관리 경로를 먼저 조사해 Git 정의를 만들고, Application을 연결해 sync가 정상인 것을 확인한 뒤에야 기존 소유권을 정리했습니다."
     },
     {
-      "label": "Remove old ownership last",
-      "text": "GitOps sync와 서비스 검증이 끝난 뒤 기존 Helm/manual ownership을 정리해 accidental deletion 위험을 줄입니다."
+      "label": "`kubectl diff`로 실제 차이를 먼저 눈으로 확인",
+      "text": "Git 정의가 현재 클러스터 상태와 같다고 가정하지 않았습니다. 이관 전에 diff를 돌려 어떤 필드가 다른지 항목별로 확인했습니다. 기존 배포가 client-side apply로 이뤄졌다면 `--server-side` 없이 비교해야 의미 있는 차이가 나온다는 점도 이 과정에서 정리했습니다. uid처럼 애초에 변경 불가능한 필드가 diff에 뜨는 것은 정상이므로, 실제로 봐야 할 차이와 무시할 차이를 구분하는 기준을 문서로 남겼습니다."
+    },
+    {
+      "label": "ArgoCD 제거는 non-cascade로",
+      "text": "워크로드 클러스터의 ArgoCD를 없앨 때 Application 리소스를 그냥 삭제하면 finalizer 때문에 멈추거나, 진행되더라도 그 Application이 관리하던 실제 워크로드까지 함께 삭제됩니다. Application의 `metadata.finalizers`를 빈 배열로 patch한 뒤 삭제하는 순서로 분리했고, 이 과정을 스크립트로 만들어 사람이 순서를 틀릴 여지를 없앴습니다."
+    },
+    {
+      "label": "credential은 스크립트에 넣지 않는다",
+      "text": "환경이 일곱 개라 repository 등록 작업이 반복됩니다. 자동화하되 내부 endpoint와 토큰을 파일에 남기지 않도록 환경 변수 주입 방식으로 작성했습니다. 이 스크립트는 내부 도메인만 치환해 공개본으로 남겼습니다."
     }
   ],
   "implementation": [
-    "repository / naming / environment 구조 정리",
-    "AppProject / Application 구성",
-    "인프라 component를 환경별로 단계적 migration",
-    "기존 Helm release / manifest ownership 정리",
-    "다수 ArgoCD 운영 구조의 shared ArgoCD 통합 작업 지원"
+    "저장소 구조, 네이밍 규칙, 환경 분리 설계",
+    "AppProject / Application 구성 및 RBAC 정의",
+    "인프라 컴포넌트를 환경별로 단계적 이관 (Splunk 연동, PowerStore CSM, AKO 구성 순)",
+    "워크로드 클러스터별 ArgoCD를 공유 클러스터 ArgoCD로 통합",
+    "Application finalizer patch 후 삭제하는 non-cascade 정리 스크립트 작성",
+    "credential을 환경 변수로 주입하는 repository 등록 스크립트 작성"
   ],
   "validation": [
-    "ArgoCD sync 상태와 실제 Kubernetes object 비교",
-    "기존 management path 제거 전 서비스 영향 확인",
-    "기존 resource가 다른 Application에서 사용 중인지 확인 후 정리"
+    "ArgoCD sync 상태와 실제 Kubernetes 오브젝트를 항목별로 비교",
+    "`kubectl delete --dry-run=client -o name`으로 삭제 대상 사전 확인",
+    "기존 관리 경로 제거 전 해당 리소스를 다른 Application이 참조하지 않는지 확인",
+    "ArgoCD 제거 작업 중 Application·ServiceAccount·Role·CRD·ClusterRoleBinding 삭제 진행 상황을 별도 터미널에서 동시 관찰",
+    "이관 후 워크로드 정상 동작 확인"
   ],
   "outcome": [
-    "인프라 구성 변경 이력을 Git에서 추적할 수 있는 운영 모델로 이전했습니다.",
-    "기존 수동 관리와 GitOps가 겹치는 구간을 별도 migration 절차로 관리했습니다."
+    "인프라 구성 변경 이력이 Git에 남고, 어떤 환경에 무엇이 반영됐는지를 사람의 기억이 아니라 저장소에서 확인할 수 있게 됐습니다.",
+    "워크로드 클러스터에 분산돼 있던 ArgoCD를 공유 클러스터로 통합해 관리 지점을 줄였습니다.",
+    "이관 도중 소유권 충돌로 인한 리소스 삭제는 발생하지 않았습니다. 이 구간에서 관찰한 내용은 별도 트러블슈팅 사례로 정리했습니다."
   ],
   "technologies": [
     "Kubernetes",

@@ -2,23 +2,42 @@
   "positions": [
     {
       "company": "이테크시스템 (E-Tech System)",
+      "companyNote": "VMware · Dell 기반 엔터프라이즈 인프라 구축·운영 SI. 금융·공공 고객의 온프레미스 클라우드 플랫폼을 담당합니다.",
       "team": "Cloud / PaaS Platform",
       "role": "Cloud Platform Engineer / Container Platform Engineer",
-      "period": "2020.10 – Present",
-      "summary": "엔터프라이즈 고객의 온프레미스 Kubernetes 플랫폼 구축과 운영을 담당해 왔습니다. 초기에는 Tanzu 기반 플랫폼 구축이 중심이었고, 이후 네트워크 구조 개선, GitOps 전환, 관측성 확장, 운영 자동화와 장애 분석까지 역할을 넓혔습니다.",
+      "period": "2020.10 – 재직 중 (6년차)",
+      "summary": "금융·공공 고객의 온프레미스 Kubernetes 플랫폼을 구축하고 운영해 왔습니다. 클라우드를 쓸 수 없고 환경끼리 통신도 되지 않는 조건이 기본 전제입니다. 초기에는 Tanzu 기반 플랫폼 구축이 중심이었고, 이후 네트워크 구조 전환, GitOps 이관, 관측성 확장, 운영 자동화, 장애 RCA로 범위를 넓혔습니다.",
+      "scale": {
+        "title": "현재 담당 플랫폼",
+        "lead": "국내 카드사 한 곳의 온프레미스 Kubernetes 플랫폼입니다. vSphere 8 · VMware VKS 기반.",
+        "items": [
+          "격리 네트워크 7개 — DMZ에 운영/개발·스테이징/DR, 내부에 운영/개발·스테이징/DR/샌드박스. 환경 간 통신 경로 없음",
+          "클러스터 25개 — Supervisor 7개(환경당 1개), 게스트 18개(Shared 9 · Workload 9)",
+          "워커 노드 66대 — Shared 27대 · Workload 39대",
+          "Shared 클러스터는 환경과 무관하게 전부 워커 3대로 통일. CI/CD와 공통 컴포넌트 담당",
+          "Workload 클러스터는 환경 성격에 따라 상이 — DMZ 전 환경 3대, 내부 운영 6대, 내부 개발 9대, 내부 스테이징 7대, 내부 DR 5대",
+          "개발/스테이징은 같은 네트워크 안에서 DEV와 STG를 별도 클러스터로 분리 (환경당 게스트 4개)",
+          "환경마다 Harbor · MinIO · DHCP · Jumpbox · AVI Controller · Service Engine · GitLab · ArgoCD가 개별 존재",
+          "Cluster API MachineDeployment 기반 노드그룹 오토스케일링 운영 (환경별 min 3~7 / max 6~14)"
+        ],
+        "note": "난이도는 노드 수가 아니라 환경 수에서 나옵니다. 같은 플랫폼을 일곱 번 따로 만들고 일곱 번 따로 운영해야 하므로, 컴포넌트 하나를 반영하는 작업이 일곱 번의 작업이 됩니다. Shared 클러스터를 전부 3대로 통일한 것도 환경별 차이를 최소화하려는 의도적인 선택이었습니다. 운영 자동화와 GitOps 전환이 선택이 아니라 필수였던 이유입니다."
+      },
       "responsibilities": [
-        "Kubernetes / VMware Tanzu 기반 온프레미스 PaaS 구축 및 운영",
-        "Contour / Envoy, AKO / AVI, NSX ALB 기반 Ingress 및 네트워크 구조 설계·전환 지원",
-        "Dell PowerStore CSI / CSM, vSphere CSI, NFS 기반 Kubernetes 스토리지 연동",
-        "ArgoCD / GitLab / Jenkins / Helm / Kustomize를 활용한 배포·운영 구조 개선",
-        "Prometheus / Pushgateway / PromQL / Splunk를 활용한 플랫폼 관측성 확장",
-        "RBAC, ResourceQuota, Admission Policy 및 운영 가드레일 설계·검증",
-        "Production 장애 원인 분석 및 점검·자동화 스크립트 작성"
+        "Kubernetes / VMware Tanzu(VKS) 기반 온프레미스 PaaS 구축 및 운영 — 폐쇄망 설치, 버전 업그레이드, 노드 롤링 교체",
+        "Ingress 네트워크 구조 설계 및 전환 — Contour / Envoy에서 AKO / AVI(NSX ALB) 기반 구조로 이관",
+        "Antrea Egress 기반 고정 Outbound Source IP 설계 — 노드 lifecycle과 외부 방화벽 정책 분리",
+        "Dell PowerStore CSI / CSM, vSphere CSI, NFS 스토리지 연동 및 스토리지 어레이 교체 이관",
+        "Jumpbox 수동 관리 리소스를 GitLab + ArgoCD 기반 GitOps로 이관",
+        "Prometheus / Pushgateway / PromQL / Splunk 기반 플랫폼 관측성 확장",
+        "RBAC, ResourceQuota, ValidatingAdmissionPolicy(CEL) 기반 운영 가드레일 설계 및 적용",
+        "HPA / Cluster Autoscaler 사전 검증 후 운영 적용, 오토스케일링 이상 동작 RCA",
+        "Production 장애 원인 분석 및 운영 점검·자동화 도구 작성"
       ],
-      "clients": "Financial Enterprise, Public Sector, Game / Technology Enterprise (공개 포트폴리오에서는 고객 식별정보를 제거합니다.)",
+      "clients": "금융권, 공공, 게임 / 기술 엔터프라이즈 (공개 포트폴리오에서는 고객 식별정보를 제거합니다)",
       "projectRefs": [
         "avi-ako-ingress-migration",
         "gitops-infrastructure-migration",
+        "powerstore-pv-migration",
         "enterprise-multitenant-kubernetes-platform",
         "ingress-observability-extension",
         "antrea-stable-egress"
@@ -34,8 +53,14 @@
   ],
   "education": [
     {
+      "name": "<<국내 최종학력 — 학교 / 전공>>",
+      "period": "<<입학 – 졸업>>",
+      "note": "<<학위 구분>>"
+    },
+    {
       "name": "Institute of Technology Carlow · Aviation Electronics / Avionics",
-      "period": "2014.10 – 2015.06"
+      "period": "2014.10 – 2015.06",
+      "note": "<<학위 과정 / 교환 / 연수 중 해당 항목으로 수정>>"
     }
   ]
 }

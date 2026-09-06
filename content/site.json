@@ -4,60 +4,167 @@
   "baseHref": "/",
   "name": "NamHyeon Yeo",
   "nameKo": "여남현",
-  "role": "Cloud Platform / SRE Engineer",
-  "tagline": "온프레미스 Kubernetes 플랫폼을 구축하고 운영해 왔습니다.",
-  "intro": "금융·엔터프라이즈 환경에서 Kubernetes/Tanzu 플랫폼을 구축·운영하며 네트워크 구조 개선, GitOps 전환, 관측성 확장, 운영 정책, 장애 분석과 자동화를 경험했습니다.",
+  "role": "Kubernetes Platform Engineer · 온프레미스 / 망분리",
+  "tagline": "서로 통신할 수 없는 7개 네트워크 위에 같은 Kubernetes 플랫폼을 세우고, 6년간 끊기지 않게 운영해 왔습니다.",
+  "intro": "클라우드를 쓸 수 없는 환경이 전제입니다. 환경끼리 연결되지 않으니 레지스트리도 GitOps 경로도 점프박스도 환경 수만큼 따로 존재합니다. 이 구조에서 25개 클러스터와 워커 66대의 Ingress·Egress·Storage·Registry를 하나의 일관된 플랫폼으로 유지하고, 반복되는 운영 작업을 줄이고, 장애가 나면 Scheduler·CSI·CNI·Autoscaler 로그를 같은 타임라인에 놓고 원인을 찾습니다.",
+  "availability": {
+    "status": "이직 준비 중",
+    "note": "재직 중 · 협의 후 입사 가능",
+    "interest": "금융·공공 온프레미스 Kubernetes 플랫폼, GPU / AI 인프라, Platform Engineering",
+    "location": "서울·수도권 (원격/하이브리드 협의 가능)"
+  },
   "coreTechnologies": [
     "Kubernetes",
-    "Linux",
-    "Networking",
+    "on-premise / air-gapped",
+    "Ingress · Egress",
     "GitOps",
-    "Prometheus",
-    "ArgoCD",
-    "VMware Tanzu / VKS",
-    "Python / Bash"
+    "Observability",
+    "Cluster API / Tanzu",
+    "CSI Storage",
+    "Bash · Python"
   ],
   "highlights": [
     {
-      "value": "5+ Years",
-      "label": "Cloud Platform Engineering"
+      "value": "6년차",
+      "label": "온프레미스 Kubernetes 구축·운영 · 2020.10~"
     },
     {
-      "value": "Production Kubernetes",
-      "label": "Enterprise · Financial Environment"
+      "value": "격리 네트워크 7개",
+      "label": "DMZ 3 · 내부 4 — 환경 간 통신 경로 없음"
     },
     {
-      "value": "Platform Operations",
-      "label": "Networking · GitOps · Observability"
+      "value": "클러스터 25개",
+      "label": "Supervisor 7 · Shared 9 · Workload 9 · 워커 66대"
     },
     {
       "value": "CKA",
-      "label": "Certified Kubernetes Administrator"
+      "label": "Certified Kubernetes Administrator · 2021.02"
     }
   ],
+  "platformScope": {
+    "title": "담당 플랫폼 규모",
+    "lead": "국내 카드사 한 곳의 온프레미스 Kubernetes 플랫폼입니다. vSphere 8 위의 VMware VKS 기반으로, 서로 통신하지 않는 7개 네트워크에 총 25개 클러스터와 워커 노드 66대가 있습니다.",
+    "zones": [
+      {
+        "name": "DMZ",
+        "environments": [
+          "운영",
+          "개발 / 스테이징",
+          "DR"
+        ],
+        "note": "전 게스트 클러스터 워커 3대 통일 · 합계 24대"
+      },
+      {
+        "name": "내부",
+        "environments": [
+          "운영",
+          "개발 / 스테이징",
+          "DR",
+          "샌드박스"
+        ],
+        "note": "Shared는 3대 통일, Workload만 환경별 상이 · 합계 42대"
+      }
+    ],
+    "counts": [
+      {
+        "label": "격리 네트워크",
+        "value": "7개",
+        "detail": "DMZ 3 · 내부 4"
+      },
+      {
+        "label": "Supervisor Cluster",
+        "value": "7개",
+        "detail": "환경당 1개"
+      },
+      {
+        "label": "게스트 클러스터",
+        "value": "18개",
+        "detail": "Shared 9 · Workload 9"
+      },
+      {
+        "label": "워커 노드",
+        "value": "66대",
+        "detail": "Shared 27 · Workload 39"
+      }
+    ],
+    "clusters": [
+      {
+        "env": "Shared 클러스터 (9개 전부)",
+        "structure": "CI/CD · 공통 컴포넌트",
+        "detail": "환경과 무관하게 워커 3대로 통일"
+      },
+      {
+        "env": "DMZ · 전 환경 Workload",
+        "structure": "업무 워크로드",
+        "detail": "워커 3대"
+      },
+      {
+        "env": "내부 · 운영 Workload",
+        "structure": "업무 워크로드",
+        "detail": "워커 6대"
+      },
+      {
+        "env": "내부 · 개발 / 스테이징 Workload",
+        "structure": "같은 네트워크에서 DEV·STG를 클러스터로 분리",
+        "detail": "DEV 워커 9대 · STG 워커 7대"
+      },
+      {
+        "env": "내부 · DR Workload",
+        "structure": "재해복구",
+        "detail": "워커 5대"
+      },
+      {
+        "env": "내부 · 샌드박스",
+        "structure": "운영 반영 전 검증 전용",
+        "detail": "다른 여섯 환경 어디와도 연결되지 않음"
+      }
+    ],
+    "implication": "Shared 클러스터 9개를 전부 워커 3대로 맞추고 Workload만 환경 성격에 따라 다르게 둔 것은 의도한 설계입니다. 환경별 특수 구성이 하나 늘어나면 일곱 배로 늘어나기 때문입니다. 그럼에도 Harbor 레지스트리, MinIO, DHCP, 점프박스, AVI Controller와 Service Engine, GitLab과 ArgoCD, 인증서 체계는 환경마다 따로 존재하고 게스트 클러스터마다 AKO와 Contour도 개별 관리 대상입니다. 컴포넌트 하나를 반영하는 작업이 실제로는 일곱 번의 작업이 됩니다. 운영 자동화와 GitOps 전환에 시간을 쓴 이유가 여기 있습니다.",
+    "diagram": "assets/diagrams/network-isolation-topology.svg"
+  },
+  "readingGuide": {
+    "title": "시간이 없다면 이 세 개만",
+    "items": [
+      {
+        "label": "가장 복잡했던 설계",
+        "text": "망분리 요구를 Kubernetes Ingress 구조로 옮긴 AVI/AKO 전환",
+        "href": "projects/avi-ako-ingress-migration/"
+      },
+      {
+        "label": "가장 깊게 판 장애",
+        "text": "PVC 바인딩과 Autoscaler 평가 루프 사이의 race condition",
+        "href": "troubleshooting/autoscaler-pvc-binding-race/"
+      },
+      {
+        "label": "직접 만든 것",
+        "text": "Egress datapath 검증을 한 명령으로 끝내는 운영 CLI",
+        "href": "tools/"
+      }
+    ]
+  },
   "skills": [
     {
       "group": "Kubernetes / Platform",
       "items": [
-        "Cluster Lifecycle",
+        "Cluster API 기반 클러스터 lifecycle",
         "Ingress / Egress",
-        "RBAC",
-        "Resource Governance",
-        "Autoscaling",
+        "RBAC · ResourceQuota · LimitRange",
+        "ValidatingAdmissionPolicy (CEL)",
+        "HPA / Cluster Autoscaler",
         "CSI / Storage",
-        "Admission Control"
+        "폐쇄망 설치·업그레이드"
       ]
     },
     {
       "group": "Networking",
       "items": [
         "Contour / Envoy",
-        "AKO / AVI",
-        "NSX ALB",
-        "Antrea Egress",
+        "AKO / AVI (NSX ALB)",
+        "Antrea Egress / SNAT",
         "NetworkPolicy",
-        "DNS / TLS",
-        "Traffic-path troubleshooting"
+        "DNS / TLS / VIP cutover",
+        "tcpdump · conntrack 기반 datapath 검증",
+        "Gateway API (검토)"
       ]
     },
     {
@@ -75,13 +182,13 @@
     {
       "group": "Observability / Reliability",
       "items": [
-        "Prometheus",
+        "Prometheus / PromQL",
         "Grafana",
         "Pushgateway",
-        "PromQL",
         "Splunk",
-        "Incident RCA",
-        "Runbook design"
+        "장애 RCA · 타임라인 분석",
+        "Runbook 작성",
+        "OpenTelemetry (Self Study)"
       ]
     },
     {
@@ -89,11 +196,11 @@
       "items": [
         "VMware vSphere",
         "Tanzu / VKS",
-        "Dell PowerStore",
+        "Dell PowerStore CSI / CSM",
+        "Kasten K10",
         "Bash",
         "Python",
-        "Terraform (Self Study)",
-        "Ansible (Self Study)"
+        "Terraform · Ansible (Self Study)"
       ]
     }
   ],
@@ -104,7 +211,13 @@
     "engineeringNotes": ""
   },
   "resume": {
-    "summary": "2020년부터 온프레미스 Kubernetes 플랫폼 구축과 운영을 담당해 왔습니다. 초기에는 Tanzu 기반 플랫폼 구축이 중심이었고, 이후 네트워크 아키텍처 전환, GitOps, Observability, Admission Policy, Autoscaling 운영과 장애 RCA로 역할을 확장했습니다.",
-    "downloadNote": "Home에 경력 요약을 통합했습니다."
+    "summary": "2020년 10월부터 금융·공공 고객의 온프레미스 Kubernetes 플랫폼을 구축하고 운영해 왔습니다. 망분리와 폐쇄망이 기본 전제인 환경에서 클러스터 lifecycle, Ingress·Egress 네트워크 구조, Storage 연동, GitOps 전환, Admission 정책, Autoscaling, 장애 RCA를 담당했습니다.",
+    "downloadUrl": "",
+    "downloadNote": "국문 이력서 PDF 준비 중 · 고객사 실명은 PDF에만 포함"
+  },
+  "employer": {
+    "name": "이테크시스템",
+    "nameEn": "E-Tech System",
+    "description": "VMware · Dell 기반 엔터프라이즈 인프라 구축·운영 SI. 금융·공공 고객의 온프레미스 클라우드 플랫폼 담당."
   }
 }

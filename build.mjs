@@ -180,7 +180,7 @@ const diagram = (t) => (t ? `<pre class="diagram" aria-label="architecture diagr
 const tags = (v) =>
   !v || !v.length ? '' : `<ul class="tags">${v.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
 
-const evidenceLinks = (v) => !v || !v.length ? '' : `<ul class="bullets evidence-links">${v.map((e) => `<li><a href="${url(evidenceRoute(e.path))}">${esc(e.label)}<span class="link-arrow">↗</span></a></li>`).join('')}</ul>`;
+const evidenceLinks = (v) => !v || !v.length ? '' : `<ul class="bullets evidence-links">${v.map((e) => `<li><a href="${url(evidenceRoute(e.path))}">${esc(e.label)}</a></li>`).join('')}</ul>`;
 
 // 왼쪽 모노 라벨 + 오른쪽 본문. 이 사이트의 기본 조판 단위입니다.
 const field = (label, body) => (body ? `<section class="field"><h2>${esc(label)}</h2><div class="field-body">${body}</div></section>` : '');
@@ -218,8 +218,10 @@ function page({ path, title, description, main, wide = false }) {
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${abs(path)}">
 <meta property="og:site_name" content="${esc(site.name)}">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="${abs('assets/og-card.png')}">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="${url('assets/style.css')}">
+<link rel="stylesheet" href="${url('assets/theme.css')}">
 </head>
 <body>
 <a class="skip" href="#main">본문으로 건너뛰기</a>
@@ -242,7 +244,7 @@ ${main}
   </p>
   <p class="footer-note">Production 사례의 고객사 정보와 네트워크 식별자는 모두 제거했습니다.</p>
 </footer>
-${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true,theme:'dark',securityLevel:'strict'});</script>` : ''}
+${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true,theme:'neutral',securityLevel:'strict'});</script>` : ''}
 </body>
 </html>`;
 
@@ -263,8 +265,8 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
   const featuredProjects = projects
     .slice(0, 4)
     .map(
-      (p, idx) =>
-        `<li><a href="${url('projects/' + p.slug + '/')}"><span class="idx-no">0${idx + 1}</span><span class="idx-cat">${esc(p.type)}</span><span class="idx-title">${esc(p.title)}</span><span class="idx-sum">${esc(p.summary)}</span></a></li>`
+      (p) =>
+        `<li><a href="${url('projects/' + p.slug + '/')}"><span class="idx-cat">${esc(p.type)}</span><span class="idx-title">${esc(p.title)}</span><span class="idx-sum">${esc(p.summary)}</span></a></li>`
     )
     .join('');
 
@@ -276,6 +278,41 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
     )
     .join('');
 
+  const availability = site.availability ? `
+  <div class="availability">
+    <b>${esc(site.availability.status)}</b>
+    <span>${esc(site.availability.note)}</span>
+    <span>${esc(site.availability.interest)}</span>
+    <span>${esc(site.availability.location)}</span>
+  </div>` : '';
+
+  const platformScope = site.platformScope ? `
+<section class="platform-scope">
+  <div class="section-kicker"><h2>${esc(site.platformScope.title)}</h2></div>
+  <p class="scope-lead">${inline(site.platformScope.lead)}</p>
+  <div class="scope-counts">
+    ${site.platformScope.counts.map((c) => `<div class="scope-count"><span>${esc(c.label)}</span><strong>${esc(c.value)}</strong><span>${esc(c.detail)}</span></div>`).join('')}
+  </div>
+  <div class="scope-grid">
+    ${site.platformScope.zones.map((z) => `<div class="scope-zone"><h3>${esc(z.name)}</h3><p>${esc(z.environments.join(' · '))}</p><p>${esc(z.note)}</p></div>`).join('')}
+  </div>
+  <div class="table-wrap">
+    <table class="scope-table">
+      <thead><tr><th>구성</th><th>역할 / 구조</th><th>규모</th></tr></thead>
+      <tbody>${site.platformScope.clusters.map((c) => `<tr><td>${esc(c.env)}</td><td>${esc(c.structure)}</td><td>${esc(c.detail)}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>
+  ${site.platformScope.diagram ? `<img class="scope-diagram" src="${url(site.platformScope.diagram)}" alt="망분리 Kubernetes 플랫폼 토폴로지">` : ''}
+  <p class="scope-lead">${inline(site.platformScope.implication)}</p>
+</section>` : '';
+
+  const readingGuide = site.readingGuide ? `
+<section class="reading-guide">
+  <h2>${esc(site.readingGuide.title)}</h2>
+  <ul class="reading-guide-list">${site.readingGuide.items.map((i) =>
+    `<li><a href="${url(i.href)}"><strong>${esc(i.label)}</strong><span>${esc(i.text)}</span></a></li>`).join('')}</ul>
+</section>` : '';
+
   const main = `
 <section class="hero">
   <p class="eyebrow">${esc(site.role)}</p>
@@ -283,30 +320,33 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
   <p class="hero-intro">${inline(site.intro)}</p>
   <ul class="tags hero-tags">${site.coreTechnologies.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
   <p class="cta">
-    <a class="cta-primary" href="${url('projects/')}">View Projects</a>
-    <a href="${url('troubleshooting/')}">Troubleshooting</a>
+    <a class="cta-primary" href="${url('projects/')}">프로젝트 보기</a>
+    <a href="${url('troubleshooting/')}">장애 분석</a>
     <a href="${esc(site.contact.github)}">GitHub</a>
     <a href="mailto:${esc(site.contact.email)}">Email</a>
   </p>
+  ${availability}
 </section>
 <section class="stats">${highlights}</section>
+${platformScope}
+${readingGuide}
 <section class="home-section resume-snapshot">
-  <div class="section-kicker"><span>01</span><h2>경력 요약 / Resume Snapshot</h2></div>
+  <div class="section-kicker"><h2>경력 요약 / Resume Snapshot</h2></div>
   ${field('Profile / 소개', para(site.resume.summary))}
-  ${field('Experience / 경력', `<p class="entry-meta"><strong>${esc(experience.positions[0].company)}</strong> · ${esc(experience.positions[0].role)} · ${esc(experience.positions[0].period)}</p>${bullets(experience.positions[0].responsibilities.slice(0, 5))}<p class="more"><a href="${url('experience/')}">상세 경력 보기 →</a></p>`)}
+  ${field('Experience / 경력', `<p class="entry-meta"><strong>${esc(experience.positions[0].company)}</strong> · ${esc(experience.positions[0].role)} · ${esc(experience.positions[0].period)}</p>${bullets(experience.positions[0].responsibilities.slice(0, 5))}<p class="more"><a href="${url('experience/')}">상세 경력 보기</a></p>`)}
   ${field('Core Skills / 핵심 역량', `<div class="skills">${site.skills.map((g) => `<div class="skill-group"><h3>${esc(g.group)}</h3>${tags(g.items)}</div>`).join('')}</div>`)}
   ${field('Certification / 자격', `<ul class="bullets">${experience.certifications.map((c) => `<li>${esc(c.name)} · ${esc(c.date)}</li>`).join('')}</ul>`)}
   ${field('Contact / 연락처', `<ul class="bullets"><li>Email · <a href="mailto:${esc(site.contact.email)}">${esc(site.contact.email)}</a></li><li>GitHub · <a href="${esc(site.contact.github)}">${esc(site.contact.github)}</a></li></ul>`)}
 </section>
 <section class="home-section">
-  <div class="section-kicker"><span>02</span><h2>주요 프로젝트 / Selected Engineering Work</h2></div>
+  <div class="section-kicker"><h2>주요 프로젝트 / Selected Engineering Work</h2></div>
   <ul class="index-list large featured-grid">${featuredProjects}</ul>
-  <p class="more"><a href="${url('projects/')}">모든 프로젝트 보기 →</a></p>
+  <p class="more"><a href="${url('projects/')}">모든 프로젝트 보기</a></p>
 </section>
 <section class="home-section">
-  <div class="section-kicker"><span>03</span><h2>장애 분석 / Troubleshooting Casebook</h2></div>
+  <div class="section-kicker"><h2>장애 분석 / Troubleshooting Casebook</h2></div>
   <ul class="index-list">${featuredCases}</ul>
-  <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기 →</a></p>
+  <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기</a></p>
 </section>`;
   page({ path: '', title: 'Home', main });
 }
@@ -320,7 +360,9 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
   <h2>${esc(p.company)}</h2>
   <p class="entry-meta">${esc(p.role)}${p.team ? ' · ' + esc(p.team) : ''}</p>
   <p class="entry-meta">${isNeedData(p.period) ? needTag(p.period) : esc(p.period)}</p>
+  ${p.companyNote ? `<p class="entry-meta">${inline(p.companyNote)}</p>` : ''}
   ${para(p.summary)}
+  ${p.scale ? `<section class="platform-scope compact"><h3>${esc(p.scale.title)}</h3><p class="scope-lead">${inline(p.scale.lead)}</p>${bullets(p.scale.items)}${para(p.scale.note)}</section>` : ''}
   <h3>Key responsibilities / 주요 역할</h3>
   ${bullets(p.responsibilities)}
   <h3>Clients / 환경</h3>
@@ -342,7 +384,7 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
     .map((c) => `<li>${esc(c.name)} — ${esc(c.issuer)} · ${isNeedData(c.date) ? needTag(c.date) : esc(c.date)}</li>`)
     .join('');
   const edu = experience.education
-    .map((e) => `<li>${isNeedData(e.name) ? needTag(e.name) : esc(e.name)} · ${isNeedData(e.period) ? needTag(e.period) : esc(e.period)}</li>`)
+    .map((e) => `<li>${isNeedData(e.name) ? needTag(e.name) : esc(e.name)} · ${isNeedData(e.period) ? needTag(e.period) : esc(e.period)}${e.note ? ` · ${esc(e.note)}` : ''}</li>`)
     .join('');
 
   const main = `
@@ -468,7 +510,7 @@ ${field('Evidence / 관련 파일', evidenceLinks(c.evidence_links))}
   <h3>Implementation / 구현</h3>${bullets(l.implementation)}
   <h3>Validation / 검증</h3>${bullets(l.validation)}
   <h3>Lessons / 배운 점</h3>${bullets(l.lessons)}
-  ${evidenceLinks(l.evidence_links)}${l.repository ? `<p class="more"><a href="https://github.com/${esc(site.githubUsername)}/${esc(l.repository.replace('CHANGE_ME', site.githubUsername))}">Repository →</a></p>` : ''}
+  ${evidenceLinks(l.evidence_links)}${l.repository ? `<p class="more"><a href="https://github.com/${esc(site.githubUsername)}/${esc(l.repository.replace('CHANGE_ME', site.githubUsername))}">Repository</a></p>` : ''}
 </article>`
     )
     .join('');
@@ -495,7 +537,7 @@ ${items}`,
   <h3>Usage</h3><pre class="code">${esc(t.usage)}</pre>
   <h3>Example output</h3><pre class="code">${esc(t.example)}</pre>
   <h3>Safety considerations</h3>${bullets(t.safety)}
-  ${evidenceLinks(t.evidence_links)}${t.repository ? `<p class="more"><a href="https://github.com/${esc(site.githubUsername)}/${esc(t.repository.replace('CHANGE_ME', site.githubUsername))}">Repository →</a></p>` : ''}
+  ${evidenceLinks(t.evidence_links)}${t.repository ? `<p class="more"><a href="https://github.com/${esc(site.githubUsername)}/${esc(t.repository.replace('CHANGE_ME', site.githubUsername))}">Repository</a></p>` : ''}
 </article>`
     )
     .join('');
@@ -504,7 +546,7 @@ ${items}`,
     path: 'tools/',
     title: 'Tools / 자동화',
     description: '운영 중 만든 점검·자동화 스크립트',
-    main: `<header class="page-head"><h1>Tools / 자동화</h1><p>운영하면서 같은 확인을 세 번 이상 반복하게 되면 스크립트로 만들었습니다. 전부 <code>kubernetes-operations-toolkit</code> 저장소에 모아 두었습니다.</p></header>
+    main: `<header class="page-head"><h1>Tools / 자동화</h1><p>운영하면서 같은 확인을 세 번 이상 반복하게 되면 스크립트로 만들었습니다. 실제 운영 스크립트에서 자격증명과 내부 식별정보를 제거한 공개본입니다.</p></header>
 ${items}`,
   });
 }
@@ -541,7 +583,7 @@ ${items}`,
   <p class="eyebrow">Engineering Evidence</p>
   <h1>${esc(firstHeading)}</h1>
   <p class="lede">Sanitized technical evidence connected to the portfolio project.</p>
-  <p class="evidence-source"><a href="${esc(githubSource)}">View Markdown source on GitHub ↗</a></p>
+  <p class="evidence-source"><a href="${esc(githubSource)}">Markdown source on GitHub</a></p>
 </header>
 <article class="markdown-body">${body}</article>
 <p class="back"><a href="${url('projects/')}">← Portfolio</a></p>`;
@@ -552,8 +594,9 @@ ${items}`,
 
 /* --------------------------------------------------------------- 부가 파일 */
 
-mkdirSync(join(OUT, 'assets'), { recursive: true });
-copyFileSync(join(ROOT, 'assets', 'style.css'), join(OUT, 'assets', 'style.css'));
+if (existsSync(join(ROOT, 'assets'))) {
+  cpSync(join(ROOT, 'assets'), join(OUT, 'assets'), { recursive: true });
+}
 if (existsSync(join(ROOT, 'evidence'))) cpSync(join(ROOT, 'evidence'), join(OUT, 'evidence'), { recursive: true, filter: (src) => !src.toLowerCase().endsWith('.md') });
 writeFileSync(join(OUT, '.nojekyll'), '');
 writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);

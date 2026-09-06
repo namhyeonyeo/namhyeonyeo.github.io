@@ -1,71 +1,107 @@
 {
   "slug": "enterprise-multitenant-kubernetes-platform",
   "order": 4,
-  "title": "Enterprise Multi-Tenant Kubernetes Platform / 멀티테넌트 플랫폼 구축",
+  "title": "망분리 환경 Kubernetes 플랫폼 구축 / 7개 격리 네트워크에 같은 플랫폼 세우기",
   "period": "2022.04 – 2022.12",
   "type": "PRODUCTION PROJECT",
-  "summary": "PROD / DR / DEV / STG / Sandbox 환경을 고려한 Tanzu 기반 Kubernetes 플랫폼을 구축하고 Ingress, Registry, Load Balancer, Storage 연동을 하나의 운영 플랫폼으로 구성한 프로젝트입니다.",
+  "team": "이테크시스템 플랫폼 담당 · 고객사 인프라팀 · 네트워크팀 협업 / 본인은 Kubernetes 플랫폼 구축과 컴포넌트 연동 담당",
+  "summary": "DMZ에 운영·개발/스테이징·DR, 내부에 운영·개발/스테이징·DR·샌드박스. 서로 통신하지 않는 7개 네트워크 위에 동일한 Kubernetes 플랫폼을 구축했습니다. Supervisor 7개와 게스트 18개, 워커 노드 66대입니다. 클러스터를 세우는 것보다 Ingress·Registry·LoadBalancer·Storage를 환경마다 반복 가능한 형태로 묶는 것이 핵심이었습니다.",
   "context": [
-    "여러 환경과 workload를 분리해 수용할 온프레미스 Kubernetes 플랫폼이 필요했습니다.",
-    "내부/DMZ 네트워크와 Registry DR, Ingress, Storage 등 플랫폼 공통 기능을 함께 구성해야 했습니다."
+    "고객 보안 정책상 DMZ와 내부가 분리되고, 그 안에서도 운영·개발/스테이징·DR이 각각 다른 네트워크를 씁니다. 샌드박스는 내부에만 있고 나머지 여섯 개 어디와도 연결되지 않습니다.",
+    "개발과 스테이징은 같은 네트워크를 쓰되 클러스터로 분리합니다. 따라서 그 환경에는 게스트 클러스터가 네 개(STG Shared/Workload, DEV Shared/Workload) 존재합니다.",
+    "환경마다 Supervisor Cluster 하나와 Shared·Workload 게스트 클러스터를 두는 구조입니다. Shared는 CI/CD와 공통 컴포넌트를, Workload는 업무 애플리케이션을 담습니다.",
+    "외부 인터넷 연결이 없으므로 이미지, Helm 차트, OS 패키지, 취약점 DB를 전부 폐쇄망 안으로 반입해야 합니다."
   ],
   "problem": [
-    "환경별 Kubernetes cluster와 공통 플랫폼 구성요소를 일관된 방식으로 제공해야 했습니다.",
-    "애플리케이션 delivery뿐 아니라 네트워크, 인증서, 이미지 보안, 스토리지까지 함께 연동해야 했습니다."
+    "Kubernetes 클러스터만 세워서는 서비스 플랫폼이 되지 않습니다. Ingress, VIP, 이미지 레지스트리, 이미지 스캐닝, 오브젝트 스토리지, 영구 스토리지, DHCP, 인증서가 함께 붙어야 애플리케이션이 올라갑니다.",
+    "그 조합을 일곱 번 반복해야 하는데, 환경마다 손으로 다르게 구성하면 이후 운영과 장애 대응에서 환경별 차이가 계속 비용이 됩니다.",
+    "폐쇄망에서는 설치 실패 시 인터넷에서 무언가를 받아 해결하는 선택지가 없습니다. 반입 자체가 절차이므로 필요한 것을 미리 다 알고 들어가야 합니다."
   ],
   "constraints": [
-    "On-Premise enterprise network",
-    "환경별 분리",
-    "Private registry 및 외부 연결 제한"
+    "인터넷 연결 없는 폐쇄망 — 모든 아티팩트 사전 반입",
+    "환경 간 네트워크 통신 불가 — 공유 컴포넌트를 둘 수 없음",
+    "고객 보안 정책에 따른 이미지 스캐닝 및 사설 인증서 사용",
+    "환경별로 할당된 VIP 대역과 IP Pool이 다름"
   ],
   "role": [
-    "Tanzu Kubernetes 기반 Multi-Tenant cluster 구축",
-    "Contour / Envoy Ingress와 TLS Delegation 구성",
-    "Harbor private registry / DR replication / offline Trivy scan 구성",
-    "NSX ALB 및 Dell PowerStore CSI 연동 지원"
+    "Tanzu Kubernetes 기반 Supervisor / 게스트 클러스터 구축을 환경별로 수행",
+    "Contour / Envoy Ingress 구성 및 TLS Delegation 적용 — 인증서를 네임스페이스마다 복제하지 않고 위임 구조로 관리",
+    "Harbor private registry 구축, 운영↔DR replication 구성, Trivy offline 취약점 스캔 연동 (폐쇄망이므로 취약점 DB도 주기적 반입 대상)",
+    "NSX ALB IP Pool과 LoadBalancer Service 연동, 환경별 VIP 대역 매핑",
+    "Dell PowerStore CSI 연동 및 Snapshot prerequisite 구성",
+    "환경별 구성 차이를 문서로 고정해 이후 운영·장애 대응에서 참조 가능하게 정리"
   ],
   "architecture": {
-    "diagram": "Developer / CI\n     │\n     ▼\nPrivate Registry (Harbor)\n     │\n     ▼\nKubernetes clusters\n(PROD / DR / DEV / STG / Sandbox)\n     │\n     ├─ Contour / Envoy → Ingress\n     ├─ NSX ALB → VIP / LoadBalancer\n     └─ PowerStore CSI → Persistent Storage",
+    "diagram": "환경 하나의 구성 (× 7)\n\n  Supervisor Cluster        ← 환경당 1개\n      │\n      ├─ Shared Cluster     CI/CD · 공통 컴포넌트   워커 3대 (전 환경 동일)\n      └─ Workload Cluster   업무 애플리케이션        워커 3~9대 (환경별 상이)\n           개발/스테이징 환경은 DEV·STG 각각 Shared+Workload = 게스트 4개\n      │\n      ├─ AVI Controller / Service Engine ─▶ VIP · LoadBalancer\n      ├─ Harbor  ── replication ──▶ DR 환경 Harbor\n      ├─ MinIO · DHCP · Jumpbox\n      └─ PowerStore CSI ─▶ PersistentVolume\n\n────────────────────────────────────────────────────────────\n구역   환경                Workload 워커\nDMZ    운영 / 개발·스테이징 / DR       3대 (전부 통일)\n내부    운영                        6대\n내부    개발                        9대\n내부    스테이징                     7대\n내부    DR                         5대\n내부    샌드박스                     검증 전용\n────────────────────────────────────────────────────────────\nSupervisor 7 + Shared 9 + Workload 9 = 25개 클러스터 · 워커 66대\n환경 간 연결은 없습니다.",
     "notes": [
-      "공개 자료에서는 고객사 네트워크 정보와 실제 cluster 이름을 일반화합니다."
+      "고객사 네트워크 대역, 실제 클러스터 이름, 도메인은 제거했습니다. 구조와 규모만 표기합니다."
     ]
   },
   "decisions": [
     {
-      "label": "환경 분리",
-      "text": "운영/재해복구/개발/스테이징/샌드박스 성격을 분리해 platform lifecycle과 테스트 영향을 구분했습니다."
+      "label": "환경별 완전 독립 구성을 받아들이고 대신 구성을 동일하게 유지",
+      "text": "공유 레지스트리나 중앙 GitOps로 운영 부담을 줄이는 선택지는 네트워크 정책상 불가능했습니다. 그래서 반대 방향으로 갔습니다. 환경마다 독립적으로 두되 Supervisor + Shared + Workload라는 구성 자체를 동일하게 유지해서, 한 환경에서 검증한 절차가 다른 환경에 그대로 적용되게 만들었습니다. 환경별 특수 구성이 하나 늘어나면 일곱 배로 늘어난다는 점을 초기 기준으로 잡았습니다. DMZ의 게스트 클러스터 워커를 전부 3대로 통일한 것도 같은 이유입니다."
+    },
+    {
+      "label": "CI/CD·공통 컴포넌트를 Shared 클러스터로 분리하고 규모를 고정",
+      "text": "업무 워크로드와 CI/CD·공통 컴포넌트를 한 클러스터에 두면 파이프라인 부하가 서비스에 영향을 주고, 클러스터 업그레이드 시 중단 범위가 겹칩니다. 환경마다 Shared와 Workload를 나눠 lifecycle을 분리했습니다. Shared는 하는 일이 환경과 무관하게 같으므로 아홉 개 전부 워커 3대로 통일했고, Workload만 환경 성격에 따라 3~9대로 다르게 뒀습니다. 변수를 한 축으로 줄이면 용량 산정도 장애 대응도 단순해집니다."
+    },
+    {
+      "label": "TLS Delegation으로 인증서 복제를 피함",
+      "text": "네임스페이스마다 인증서 Secret을 복제하면 갱신 시점에 누락이 생깁니다. Contour의 TLS Delegation을 써서 인증서를 한 곳에 두고 여러 네임스페이스가 참조하는 구조로 만들었습니다. 폐쇄망에서 인증서 갱신은 반입 절차를 동반하므로 갱신 대상 수를 줄이는 것 자체가 운영 부담 감소로 이어집니다."
+    },
+    {
+      "label": "취약점 DB 반입을 운영 절차에 포함",
+      "text": "Trivy를 offline 모드로 붙이면 스캔은 되지만 DB가 갱신되지 않으면 최신 취약점을 못 잡습니다. 폐쇄망에서 이건 설정 문제가 아니라 반입 주기 문제입니다. DB 갱신을 일회성 구성이 아닌 반복 운영 항목으로 문서화했습니다."
+    },
+    {
+      "label": "샌드박스를 완전 격리로 유지",
+      "text": "개발 환경과 합치자는 논의가 있었지만 분리를 유지했습니다. 신규 버전이나 정책을 검증하다 클러스터를 망가뜨려도 영향 범위가 그 안에서 끝나야 하는데, 개발 환경은 이미 다른 팀이 쓰고 있었습니다. 실제로 이후 Admission Policy와 Autoscaler 검증에서 이 환경을 사용했습니다."
     }
   ],
   "implementation": [
-    "Contour / Envoy 설치와 HTTPS/TLS Delegation",
-    "Harbor 운영/DR replication 및 Trivy offline scan",
-    "NSX ALB Ingress IP Pool 연동",
-    "Dell PowerStore CSI / Snapshot 관련 prerequisite 구성 지원"
+    "환경별 Supervisor / 게스트 클러스터 구축 및 네트워크 대역 매핑",
+    "Contour / Envoy 설치, HTTPS 및 TLS Delegation 구성",
+    "Harbor 구축, 운영↔DR replication, Trivy offline scan 연동",
+    "NSX ALB IP Pool 연동 및 LoadBalancer Service 검증",
+    "Dell PowerStore CSI 연동, StorageClass 정의, Snapshot prerequisite 구성",
+    "환경별 구성 차이와 반입 대상 아티팩트 목록 문서화"
   ],
   "validation": [
-    "환경별 network/resource separation 검증",
-    "Harbor replication 및 이미지 보안 검증",
-    "Persistent Volume 생성·마운트 및 Storage integration 확인"
+    "환경별 네트워크 격리 및 리소스 분리 확인 — 환경 간 통신이 실제로 차단되는지 역방향으로도 검증",
+    "Harbor replication 동작과 Trivy 스캔 결과 확인",
+    "PersistentVolume 생성·마운트·삭제 전체 lifecycle 확인",
+    "Ingress FQDN, TLS, 경로 라우팅, 백엔드 헬스 동작 확인",
+    "샌드박스에서 의도적으로 구성을 깨뜨려 다른 환경에 영향이 없는지 확인"
   ],
   "outcome": [
-    "Multi-Tenant 온프레미스 Kubernetes 플랫폼의 기반을 구축했습니다.",
-    "이후 운영 고도화, GitOps, 네트워크 리팩토링 작업으로 이어지는 플랫폼 기반이 됐습니다."
+    "7개 격리 네트워크에 총 25개 클러스터, 워커 66대 규모로 동일 구성의 Kubernetes 플랫폼을 구축해 운영에 인계했습니다. 현재까지 운영 중입니다.",
+    "환경 구성이 동일하게 유지되어, 이후 Ingress 아키텍처 전환·GitOps 이관·Admission Policy 적용 작업에서 한 환경에서 검증한 절차를 나머지 환경에 반복 적용할 수 있었습니다.",
+    "환경별 반복 작업이 명확해지면서 이후 운영 자동화 도구와 GitOps 전환의 우선순위를 정하는 근거가 됐습니다."
   ],
   "technologies": [
     "Kubernetes",
-    "VMware Tanzu",
+    "VMware vSphere 8",
+    "VMware VKS",
     "Contour",
     "Envoy",
+    "AKO / AVI (NSX ALB)",
+    "TLS Delegation",
     "Harbor",
     "Trivy",
-    "NSX ALB",
+    "MinIO",
     "Dell PowerStore CSI",
-    "TLS"
+    "air-gapped installation"
   ],
   "related_cases": [
     "guest-cluster-api-etcd-san-mismatch",
     "pv-attachment-node-provisioning"
   ],
   "related_repository": "",
-  "evidence_links": []
+  "evidence_links": [
+    {
+      "label": "환경 구성 다이어그램",
+      "path": "assets/diagrams/network-isolation-topology.svg"
+    }
+  ]
 }
