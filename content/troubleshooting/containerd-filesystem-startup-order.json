@@ -1,6 +1,6 @@
 {
   "slug": "containerd-filesystem-startup-order",
-  "order": 3,
+  "order": 4,
   "title": "containerd Startup Order RCA / Filesystem 마운트 순서 문제",
   "date": "Production incident · date omitted",
   "category": "Linux / Container Runtime",

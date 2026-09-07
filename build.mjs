@@ -6,7 +6,7 @@
  * content/ 아래 JSON 만 수정하면 UI 코드를 건드리지 않고 페이지가 갱신됩니다.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, copyFileSync, cpSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, copyFileSync, cpSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,7 +36,7 @@ const experience = readJson(join(CONTENT, 'experience.json'));
 const about = readJson(join(CONTENT, 'about.json'));
 const projects = readDir('projects');
 const cases = readDir('troubleshooting');
-const labs = readDir('labs');
+const practices = readDir('practices');
 const tools = readDir('tools');
 
 rmSync(OUT, { recursive: true, force: true });
@@ -144,10 +144,19 @@ const markdownToHtml = (source) => {
   return out.join('\n');
 };
 
+// Extensions that get rendered as a standalone syntax-readable code page
+// instead of being linked to as a raw static file.
+const CODE_EXTENSIONS = ['.yaml', '.yml', '.sh', '.json'];
+const isCodeEvidence = (p) => CODE_EXTENSIONS.some((ext) => p.toLowerCase().endsWith(ext));
+
 const evidenceRoute = (p) => {
-  if (!p || !p.toLowerCase().endsWith('.md')) return p;
-  if (/\/README\.md$/i.test(p)) return p.replace(/README\.md$/i, '');
-  return p.replace(/\.md$/i, '/');
+  if (!p) return p;
+  if (p.toLowerCase().endsWith('.md')) {
+    if (/\/README\.md$/i.test(p)) return p.replace(/README\.md$/i, '');
+    return p.replace(/\.md$/i, '/');
+  }
+  if (isCodeEvidence(p)) return p + '/';
+  return p;
 };
 
 const isNeedData = (s) => typeof s === 'string' && s.trim().startsWith('NEED_DATA');
@@ -177,6 +186,34 @@ const notes = (v) => {
 
 const diagram = (t) => (t ? `<pre class="diagram" aria-label="architecture diagram">${esc(t)}</pre>` : '');
 
+// Generic project architecture renderer. Reads whatever shape the content
+// JSON provides — no project slug/filename is ever hardcoded here.
+//   { asIs: {...}, toBe: {...} }  -> side-by-side AS-IS / TO-BE comparison
+//   { flow: {...} }               -> single data-flow / overview diagram
+//   { diagram: "...", notes: [] } -> legacy plain-text diagram (fallback)
+// Each panel object is { label, mermaid, caption }.
+const archPanel = (panel, kind) => {
+  if (!panel || !panel.mermaid) return '';
+  const label = panel.label || (kind === 'as-is' ? 'AS-IS' : kind === 'to-be' ? 'TO-BE' : '');
+  const a11y = esc(panel.caption || label || 'architecture diagram');
+  return `<figure class="arch-panel arch-${kind}">
+  <figcaption class="arch-label"><span class="arch-tag">${esc(label)}</span></figcaption>
+  <div class="mermaid" role="img" aria-label="${a11y}">${esc(panel.mermaid)}</div>
+  ${panel.caption ? `<figcaption class="arch-caption">${inline(panel.caption)}</figcaption>` : ''}
+</figure>`;
+};
+
+const archField = (arch) => {
+  if (!arch) return '';
+  if (arch.asIs && arch.toBe) {
+    return `<div class="arch-compare">${archPanel(arch.asIs, 'as-is')}${archPanel(arch.toBe, 'to-be')}</div>${bullets(arch.notes)}`;
+  }
+  if (arch.flow) {
+    return `<div class="arch-compare arch-single">${archPanel(arch.flow, 'flow')}</div>${bullets(arch.notes)}`;
+  }
+  return diagram(arch.diagram) + bullets(arch.notes);
+};
+
 const tags = (v) =>
   !v || !v.length ? '' : `<ul class="tags">${v.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
 
@@ -190,7 +227,7 @@ const NAV = [
   ['Experience · 경력', 'experience/'],
   ['Projects · 프로젝트', 'projects/'],
   ['Troubleshooting · 장애 분석', 'troubleshooting/'],
-  ['Practices · 운영·검증', 'labs/'],
+  ['Practices · 운영·검증', 'practices/'],
   ['Tools · 자동화', 'tools/'],
   ['About · 소개', 'about/'],
 ];
@@ -210,6 +247,7 @@ function page({ path, title, description, main, wide = false }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>(function(){try{var t=localStorage.getItem('portfolio-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>${esc(fullTitle)}</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${abs(path)}">
@@ -231,6 +269,10 @@ function page({ path, title, description, main, wide = false }) {
     <span class="wordmark-role">${esc(site.role)}</span>
   </a>
   <nav aria-label="주요 메뉴">${nav}</nav>
+  <button type="button" id="theme-toggle" class="theme-toggle" aria-label="라이트/다크 테마 전환" aria-pressed="false">
+    <span class="theme-toggle-icon" aria-hidden="true"></span>
+    <span class="theme-toggle-text" aria-hidden="true">Theme</span>
+  </button>
 </header>
 <main id="main" class="${wide ? 'wide' : ''}">
 ${main}
@@ -244,6 +286,19 @@ ${main}
   </p>
   <p class="footer-note">Production 사례의 고객사 정보와 네트워크 식별자는 모두 제거했습니다.</p>
 </footer>
+<script>(function(){
+  var btn = document.getElementById('theme-toggle');
+  if(!btn) return;
+  var root = document.documentElement;
+  function sync(){ btn.setAttribute('aria-pressed', root.getAttribute('data-theme') === 'dark' ? 'true' : 'false'); }
+  sync();
+  btn.addEventListener('click', function(){
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('portfolio-theme', next); } catch (e) {}
+    sync();
+  });
+})();</script>
 ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true,theme:'neutral',securityLevel:'strict'});</script>` : ''}
 </body>
 </html>`;
@@ -315,9 +370,11 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
 
   const main = `
 <section class="hero">
-  <p class="eyebrow">${esc(site.role)}</p>
-  <h1>${esc(site.tagline)}</h1>
-  <p class="hero-intro">${inline(site.intro)}</p>
+  <p class="eyebrow">${esc(site.roleSecondary)}</p>
+  <p class="hero-name">${esc(site.name)}</p>
+  <h1>${esc(site.role)}</h1>
+  <p class="hero-lead">${inline(site.tagline)}</p>
+  ${site.heroSecondary ? `<p class="hero-intro">${inline(site.heroSecondary)}</p>` : ''}
   <ul class="tags hero-tags">${site.coreTechnologies.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
   <p class="cta">
     <a class="cta-primary" href="${url('projects/')}">프로젝트 보기</a>
@@ -330,13 +387,9 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
 <section class="stats">${highlights}</section>
 ${platformScope}
 ${readingGuide}
-<section class="home-section resume-snapshot">
-  <div class="section-kicker"><h2>경력 요약 / Resume Snapshot</h2></div>
-  ${field('Profile / 소개', para(site.resume.summary))}
-  ${field('Experience / 경력', `<p class="entry-meta"><strong>${esc(experience.positions[0].company)}</strong> · ${esc(experience.positions[0].role)} · ${esc(experience.positions[0].period)}</p>${bullets(experience.positions[0].responsibilities.slice(0, 5))}<p class="more"><a href="${url('experience/')}">상세 경력 보기</a></p>`)}
-  ${field('Core Skills / 핵심 역량', `<div class="skills">${site.skills.map((g) => `<div class="skill-group"><h3>${esc(g.group)}</h3>${tags(g.items)}</div>`).join('')}</div>`)}
-  ${field('Certification / 자격', `<ul class="bullets">${experience.certifications.map((c) => `<li>${esc(c.name)} · ${esc(c.date)}</li>`).join('')}</ul>`)}
-  ${field('Contact / 연락처', `<ul class="bullets"><li>Email · <a href="mailto:${esc(site.contact.email)}">${esc(site.contact.email)}</a></li><li>GitHub · <a href="${esc(site.contact.github)}">${esc(site.contact.github)}</a></li></ul>`)}
+<section class="home-section">
+  <div class="section-kicker"><h2>Core Expertise / 핵심 역량</h2></div>
+  <div class="skills">${site.skills.map((g) => `<div class="skill-group"><h3>${esc(g.group)}</h3>${tags(g.items)}</div>`).join('')}</div>
 </section>
 <section class="home-section">
   <div class="section-kicker"><h2>주요 프로젝트 / Selected Engineering Work</h2></div>
@@ -345,8 +398,28 @@ ${readingGuide}
 </section>
 <section class="home-section">
   <div class="section-kicker"><h2>장애 분석 / Troubleshooting Casebook</h2></div>
-  <ul class="index-list">${featuredCases}</ul>
+  <ul class="index-list rca-list">${featuredCases}</ul>
   <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기</a></p>
+</section>
+<section class="home-section resume-snapshot">
+  <div class="section-kicker"><h2>경력 요약 / Experience</h2></div>
+  ${field('Profile / 소개', para(site.resume.summary))}
+  ${field('Experience / 경력', `<p class="entry-meta"><strong>${esc(experience.positions[0].company)}</strong> · ${esc(experience.positions[0].role)} · ${esc(experience.positions[0].period)}</p>${bullets(experience.positions[0].responsibilities.slice(0, 5))}<p class="more"><a href="${url('experience/')}">상세 경력 보기</a></p>`)}
+</section>
+<section class="home-section">
+  <div class="section-kicker"><h2>Practices · 운영·검증</h2></div>
+  <ul class="index-list">${practices.map((p) => `<li><a href="${url('practices/#' + p.slug)}"><span class="idx-cat">${esc(p.label)}</span><span class="idx-title">${esc(p.title)}</span></a></li>`).join('')}</ul>
+  <p class="more"><a href="${url('practices/')}">Practices 전체 보기</a></p>
+</section>
+<section class="home-section">
+  <div class="section-kicker"><h2>Tools · 자동화</h2></div>
+  <ul class="index-list">${tools.map((t) => `<li><a href="${url('tools/#' + t.slug)}"><span class="idx-cat">${esc(t.category)}</span><span class="idx-title">${esc(t.name)}</span><span class="idx-sum">${esc(t.problem)}</span></a></li>`).join('')}</ul>
+  <p class="more"><a href="${url('tools/')}">Tools 전체 보기</a></p>
+</section>
+<section class="home-section">
+  <div class="section-kicker"><h2>Education · Certification · Contact</h2></div>
+  ${field('Certification / 자격', `<ul class="bullets">${experience.certifications.map((c) => `<li>${esc(c.name)} · ${esc(c.date)}</li>`).join('')}</ul><p class="more"><a href="${url('experience/')}">Education 전체 보기</a></p>`)}
+  ${field('Contact / 연락처', `<ul class="bullets"><li>Email · <a href="mailto:${esc(site.contact.email)}">${esc(site.contact.email)}</a></li><li>GitHub · <a href="${esc(site.contact.github)}">${esc(site.contact.github)}</a></li></ul>`)}
 </section>`;
   page({ path: '', title: 'Home', main });
 }
@@ -436,7 +509,7 @@ ${field('Context', paras(p.context))}
 ${field('Problem', bullets(p.problem))}
 ${field('Constraints', bullets(p.constraints))}
 ${field('My role', bullets(p.role))}
-${field('Architecture', diagram(p.architecture?.diagram) + bullets(p.architecture?.notes))}
+${field('Architecture', archField(p.architecture))}
 ${field('Engineering decisions', notes(p.decisions))}
 ${field('Implementation', bullets(p.implementation))}
 ${field('Validation', bullets(p.validation))}
@@ -470,12 +543,12 @@ ${field('Repository', p.related_repository ? `<p><a href="https://github.com/${e
     title: 'Troubleshooting / 장애 분석',
     description: 'Kubernetes 운영 장애 분석 casebook',
     main: `<header class="page-head"><h1>Troubleshooting Casebook</h1><p>운영 중 실제로 겪은 장애를 관측 → 가설 → 검증 → 제거 → 원인 순서로 정리했습니다. 처음부터 답을 알고 쓴 글이 아니라, 그때 어디를 헤맸는지도 남겼습니다.</p></header>
-<ul class="index-list large">${list}</ul>`,
+<ul class="index-list large rca-list">${list}</ul>`,
   });
 
   for (const c of cases) {
     const main = `
-<header class="page-head detail">
+<header class="page-head detail rca-detail">
   <p class="eyebrow">${esc(c.category)} · ${isNeedData(c.date) ? needTag(c.date) : esc(c.date)}</p>${c.evidence_status ? `<p class="evidence-status">${esc(c.evidence_status)}</p>` : ''}
   <h1>${esc(c.title)}</h1>
   <p class="lede">${inline(c.root_cause)}</p>
@@ -497,12 +570,12 @@ ${field('Evidence / 관련 파일', evidenceLinks(c.evidence_links))}
   }
 }
 
-// Labs
+// Practices
 {
-  const items = labs
+  const items = practices
     .map(
       (l) => `
-<article class="entry">
+<article class="entry" id="${esc(l.slug)}">
   <p class="eyebrow"><span class="label">${esc(l.label)}</span> ${esc(l.category)} · ${esc(l.status)}</p>
   <h2>${esc(l.title)}</h2>
   ${para(l.objective)}
@@ -516,12 +589,21 @@ ${field('Evidence / 관련 파일', evidenceLinks(c.evidence_links))}
     .join('');
 
   page({
-    path: 'labs/',
+    path: 'practices/',
     title: 'Practices / 운영·검증',
     description: '운영 적용, 사전 검증, Self Study를 사실 관계에 따라 구분한 기록',
     main: `<header class="page-head"><h1>Platform Practices / 운영·검증</h1><p>운영 환경에 실제 적용한 정책·기능, Production 반영 전 검증, Self Study를 같은 섹션에 모으되 각 항목의 라벨로 범위를 명확히 구분합니다.</p></header>
 ${items}`,
   });
+
+  // /labs/ was the pre-v6 route name; keep a static redirect so old links and
+  // bookmarks still resolve instead of 404ing.
+  const labsRedirectDir = join(OUT, 'labs');
+  mkdirSync(labsRedirectDir, { recursive: true });
+  writeFileSync(
+    join(labsRedirectDir, 'index.html'),
+    `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=${esc(url('practices/'))}"><link rel="canonical" href="${esc(abs('practices/'))}"><title>Redirecting… · ${esc(site.name)}</title></head><body><p>이 페이지는 <a href="${esc(url('practices/'))}">Practices · 운영·검증</a>으로 이동했습니다.</p></body></html>`
+  );
 }
 
 // Tools
@@ -529,7 +611,7 @@ ${items}`,
   const items = tools
     .map(
       (t) => `
-<article class="entry">
+<article class="entry" id="${esc(t.slug)}">
   <p class="eyebrow">${esc(t.category)} · ${esc(t.language)}</p>
   <h2>${esc(t.name)}</h2>
   <h3>Problem</h3>${para(t.problem)}
@@ -561,7 +643,10 @@ ${items}`,
 
 
 
-/* ------------------------------------------------------ evidence markdown */
+/* ---------------------------------------------------------- evidence pages */
+// Every Markdown / YAML / Shell file under evidence/ gets rendered as its own
+// readable HTML page (not just linked to as a raw file), so evidence_links
+// in content/*.json can point straight at a rendered, scrollable page.
 {
   const evidenceRoot = join(ROOT, 'evidence');
   const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -570,24 +655,40 @@ ${items}`,
   });
 
   if (existsSync(evidenceRoot)) {
-    for (const sourcePath of walk(evidenceRoot).filter((f) => f.toLowerCase().endsWith('.md'))) {
+    const files = walk(evidenceRoot).filter(
+      (f) => f.toLowerCase().endsWith('.md') || isCodeEvidence(f)
+    );
+    for (const sourcePath of files) {
       const relFs = sourcePath.slice(evidenceRoot.length + 1).replace(/\\/g, '/');
       const publicSourcePath = `evidence/${relFs}`;
       const route = evidenceRoute(publicSourcePath);
-      const markdown = readFileSync(sourcePath, 'utf8');
-      const firstHeading = markdown.match(/^#\s+(.+)$/m)?.[1] || relFs.split('/').pop().replace(/\.md$/i, '');
-      const body = markdownToHtml(markdown);
+      const isMarkdown = sourcePath.toLowerCase().endsWith('.md');
+      const source = readFileSync(sourcePath, 'utf8');
+      const fileName = relFs.split('/').pop();
       const githubSource = `https://github.com/${site.githubUsername}/${site.githubUsername}.github.io/blob/main/${publicSourcePath}`;
+
+      let title, body, lede;
+      if (isMarkdown) {
+        title = source.match(/^#\s+(.+)$/m)?.[1] || fileName.replace(/\.md$/i, '');
+        body = `<article class="markdown-body">${markdownToHtml(source)}</article>`;
+        lede = 'Sanitized technical evidence connected to the portfolio project.';
+      } else {
+        title = fileName;
+        const lang = fileName.split('.').pop().toLowerCase();
+        body = `<pre class="code evidence-code"><code data-language="${esc(lang)}">${esc(source)}</code></pre>`;
+        lede = 'Sanitized configuration / script evidence connected to the portfolio project.';
+      }
+
       const main = `
 <header class="page-head detail evidence-head">
   <p class="eyebrow">Engineering Evidence</p>
-  <h1>${esc(firstHeading)}</h1>
-  <p class="lede">Sanitized technical evidence connected to the portfolio project.</p>
-  <p class="evidence-source"><a href="${esc(githubSource)}">Markdown source on GitHub</a></p>
+  <h1>${esc(title)}</h1>
+  <p class="lede">${lede}</p>
+  <p class="evidence-source"><a href="${esc(githubSource)}">${isMarkdown ? 'Markdown' : 'Raw'} source on GitHub</a></p>
 </header>
-<article class="markdown-body">${body}</article>
+${body}
 <p class="back"><a href="${url('projects/')}">← Portfolio</a></p>`;
-      page({ path: route, title: firstHeading, description: `${firstHeading} — engineering evidence`, main, wide: true });
+      page({ path: route, title, description: `${title} — engineering evidence`, main, wide: true });
     }
   }
 }
@@ -597,7 +698,14 @@ ${items}`,
 if (existsSync(join(ROOT, 'assets'))) {
   cpSync(join(ROOT, 'assets'), join(OUT, 'assets'), { recursive: true });
 }
-if (existsSync(join(ROOT, 'evidence'))) cpSync(join(ROOT, 'evidence'), join(OUT, 'evidence'), { recursive: true, filter: (src) => !src.toLowerCase().endsWith('.md') });
+// .md/.yaml/.yml/.sh/.json evidence files are rendered as pages above; only
+// remaining evidence assets (if any) are copied through as static files.
+if (existsSync(join(ROOT, 'evidence'))) {
+  cpSync(join(ROOT, 'evidence'), join(OUT, 'evidence'), {
+    recursive: true,
+    filter: (src) => statSync(src).isDirectory() || (!src.toLowerCase().endsWith('.md') && !isCodeEvidence(src)),
+  });
+}
 writeFileSync(join(OUT, '.nojekyll'), '');
 writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);
 writeFileSync(
@@ -608,7 +716,7 @@ writeFileSync(
 );
 writeFileSync(
   join(OUT, '404.html'),
-  `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>404 · ${esc(site.name)}</title><link rel="stylesheet" href="${url('assets/style.css')}"></head><body><main><header class="page-head"><h1>404</h1><p>이 주소에는 페이지가 없습니다. <a href="${url('')}">처음으로 돌아가기</a></p></header></main></body></html>`
+  `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>(function(){try{var t=localStorage.getItem('portfolio-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script><title>404 · ${esc(site.name)}</title><link rel="stylesheet" href="${url('assets/style.css')}"><link rel="stylesheet" href="${url('assets/theme.css')}"></head><body><main><header class="page-head"><h1>404</h1><p>이 주소에는 페이지가 없습니다. <a href="${url('')}">처음으로 돌아가기</a></p></header></main></body></html>`
 );
 
 const needData = [];
@@ -621,7 +729,7 @@ const scan = (obj, where) => {
     for (const [k, v] of Object.entries(obj)) scan(v, `${where}.${k}`);
   }
 };
-scan({ site, experience, projects, cases, labs, tools, about }, 'content');
+scan({ site, experience, projects, cases, practices, tools, about }, 'content');
 
 console.log(`✓ ${pages.length} pages → dist/`);
 if (needData.length) {

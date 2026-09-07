@@ -1,6 +1,6 @@
 {
   "slug": "guest-cluster-api-etcd-san-mismatch",
-  "order": 2,
+  "order": 3,
   "title": "Guest Cluster API Failure / DHCP·etcd SAN 불일치",
   "date": "Production incident · date omitted",
   "category": "Control Plane / PKI / Networking",

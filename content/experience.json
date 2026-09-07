@@ -13,7 +13,7 @@
         "items": [
           "격리 네트워크 7개 — DMZ에 운영/개발·스테이징/DR, 내부에 운영/개발·스테이징/DR/샌드박스. 환경 간 통신 경로 없음",
           "클러스터 25개 — Supervisor 7개(환경당 1개), 게스트 18개(Shared 9 · Workload 9)",
-          "워커 노드 66대 — Shared 27대 · Workload 39대",
+          "확인된 워커 노드 66대+ — Shared 27대 · Workload 39대 (샌드박스 Workload는 미확정)",
           "Shared 클러스터는 환경과 무관하게 전부 워커 3대로 통일. CI/CD와 공통 컴포넌트 담당",
           "Workload 클러스터는 환경 성격에 따라 상이 — DMZ 전 환경 3대, 내부 운영 6대, 내부 개발 9대, 내부 스테이징 7대, 내부 DR 5대",
           "개발/스테이징은 같은 네트워크 안에서 DEV와 STG를 별도 클러스터로 분리 (환경당 게스트 4개)",
@@ -37,7 +37,6 @@
       "projectRefs": [
         "avi-ako-ingress-migration",
         "gitops-infrastructure-migration",
-        "powerstore-pv-migration",
         "enterprise-multitenant-kubernetes-platform",
         "ingress-observability-extension",
         "antrea-stable-egress"
@@ -53,14 +52,14 @@
   ],
   "education": [
     {
-      "name": "<<국내 최종학력 — 학교 / 전공>>",
-      "period": "<<입학 – 졸업>>",
-      "note": "<<학위 구분>>"
+      "name": "NEED_DATA — 국내 최종학력(학교/전공) 확인 필요",
+      "period": "NEED_DATA — 입학–졸업 시기 확인 필요",
+      "note": "NEED_DATA — 학위 구분 확인 필요"
     },
     {
       "name": "Institute of Technology Carlow · Aviation Electronics / Avionics",
       "period": "2014.10 – 2015.06",
-      "note": "<<학위 과정 / 교환 / 연수 중 해당 항목으로 수정>>"
+      "note": "NEED_DATA — 학위 과정 / 교환 / 연수 여부 확인 필요"
     }
   ]
 }

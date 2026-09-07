@@ -1,0 +1,69 @@
+{
+  "slug": "autoscaler-pvc-binding-race",
+  "order": 1,
+  "title": "Cluster Autoscaler Unexpected Scale-out / PVC Binding Race RCA",
+  "date": "Production incident · date omitted",
+  "category": "Autoscaling / Storage",
+  "evidence_status": "Production RCA · Sanitized",
+  "environment": [
+    "Kubernetes",
+    "Cluster Autoscaler",
+    "Kasten K10",
+    "CSI",
+    "StorageClass"
+  ],
+  "symptoms": [
+    "사전 검증 후 운영 환경에 설치한 Cluster Autoscaler가 애플리케이션 부하 증가 없이 예상치 못한 시점에 node를 scale-out했습니다.",
+    "scale-out 시점은 Kasten K10 backup workload가 실행되는 시간대와 겹쳐 있었습니다.",
+    "backup 작업이 끝난 뒤 추가된 node는 다시 scale-down됐습니다."
+  ],
+  "architecture": "Kasten backup Job\n   │ 여러 backup Pod/PVC 거의 동시 생성\n   ▼\nPVC A (Unbound로 남음)   PVC B (binding 먼저 완료)\n                              │\n                              ▼\n                     Scheduler evaluation\n                              │\n                              ▼\n                     Cluster Autoscaler scale-up 판단",
+  "investigation": [
+    "Kasten backup 작업 시점과 node scale-out 시점이 겹친다는 것을 먼저 확인했습니다.",
+    "같은 시간대에 여러 backup Pod/PVC가 거의 동시에 생성되고 있었습니다.",
+    "처음에는 Pending/Unbound 상태로 보인 Pod를 scale-out trigger로 의심했습니다.",
+    "Pod별 Kubernetes Event, PVC의 Phase/Binding timestamp, Cluster Autoscaler scale-up 로그를 같은 timeline 위에 정렬해 비교했습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "Unbound PVC Pod가 직접 scale-out을 트리거했다",
+      "text": "가장 먼저 눈에 띈 Pending/Unbound Pod를 원인으로 의심했지만, event와 CA 로그 timestamp를 나란히 놓고 비교하자 이 Pod는 scale-up 결정 시점에 이미 CA 판단의 직접 근거가 아니었습니다."
+    },
+    {
+      "label": "PVC binding이 먼저 끝난 인접 Pod가 trigger",
+      "text": "같은 시간대에 생성된 여러 backup Pod 중 PVC binding이 먼저 완료된 Pod가 scheduler evaluation과 CA evaluation loop가 맞물리는 시점에 실제 scale-up 판단의 근거가 되었습니다. timestamp 비교로 이 가설을 채택했습니다."
+    }
+  ],
+  "evidence": [
+    "여러 backup Pod/PVC가 거의 동시에 생성된 시각 기록",
+    "PVC별 Phase 변화와 binding 완료 timestamp",
+    "Cluster Autoscaler scale-up decision 로그의 대상 Pod와 판단 시각",
+    "backup 종료 후 추가 node가 scale-down된 기록"
+  ],
+  "root_cause": "실제 Cluster Autoscaler scale-up trigger는 처음 관찰된 Pending/Unbound PVC Pod가 아니라 PVC binding이 먼저 완료된 인접 Pod였습니다. 여러 backup Pod/PVC가 거의 동시에 생성되는 상황에서 storage binding 완료 시점과 Cluster Autoscaler evaluation loop가 맞물리면서 생긴 race/timing condition으로 분석했습니다.",
+  "resolution": [
+    "Backup용 StorageClass의 volumeBindingMode를 Immediate에서 WaitForFirstConsumer로 변경했습니다.",
+    "Cluster Autoscaler에 new-pod-scale-up-delay를 적용했습니다.",
+    "RCA 절차에 Pod Event + PVC Phase/Binding timestamp + CA scale-up decision을 같은 timeline으로 비교하는 단계를 표준 절차로 추가했습니다."
+  ],
+  "validation": [
+    "변경 이후 동일한 backup 시간대의 node scale-out 여부를 관찰했습니다.",
+    "StorageClass 변경이 다른 backup/워크로드 동작에 영향을 주지 않는지 확인했습니다."
+  ],
+  "prevention": [
+    "여러 Pod/PVC가 동시에 생성되는 워크로드(backup 등)에서는 Pending Pod 존재 여부만으로 scale-out 원인을 단정하지 않고 PVC binding timing을 함께 확인하도록 RCA 절차에 반영했습니다."
+  ],
+  "lessons": [
+    "Cluster Autoscaler event만 보고 어떤 Pod가 Pending이었는지로 원인을 단정하면 틀릴 수 있습니다. 비슷한 시간에 여러 Pod/PVC가 함께 생성되는 상황에서는 scheduler와 CA evaluation loop가 실제로 어떤 Pod를 근거로 판단했는지를 timestamp 단위로 확인해야 합니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "PVC Binding Race RCA note",
+      "path": "evidence/02-kubernetes-autoscaler-validation/docs/10_unexpected_scaleout_pvc_binding_race.md"
+    },
+    {
+      "label": "Cluster Autoscaler validation runbook",
+      "path": "evidence/02-kubernetes-autoscaler-validation/docs/09_test_scenario_runbook.md"
+    }
+  ]
+}

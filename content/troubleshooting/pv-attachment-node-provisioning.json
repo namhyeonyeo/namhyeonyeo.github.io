@@ -1,0 +1,61 @@
+{
+  "slug": "pv-attachment-node-provisioning",
+  "order": 6,
+  "title": "PV Attachment Failure / Node Provisioning Block RCA",
+  "date": "Production/platform incident · date omitted",
+  "category": "Storage / CSI / Node Provisioning",
+  "evidence_status": "Sanitized production/platform case",
+  "environment": [
+    "Kubernetes",
+    "vSphere CSI",
+    "vCenter",
+    "Cluster Autoscaler",
+    "Machine provisioning"
+  ],
+  "symptoms": [
+    "Cluster Autoscaler 검증 중 신규 worker node가 provisioning을 완료하지 못했습니다.",
+    "동일한 유형의 실패가 node rolling replacement 과정도 막을 수 있는 구조였습니다.",
+    "node 설계상 persistent storage가 node/runtime 구성 요소가 사용하는 경로에 마운트되어, volume attach가 machine readiness의 critical path에 있었습니다."
+  ],
+  "architecture": "Machine provisioning\n   │\n   ▼\nCSI attach\n   │\n   ▼\nvolume usable\n   │\n   ▼\nnode/runtime 초기화\n   │\n   ▼\nnode Ready",
+  "investigation": [
+    "sandbox 환경에서 현상을 재현하고 platform 로그와 함께 escalation했습니다.",
+    "조사 범위를 Cluster Autoscaler 이벤트에 한정하지 않고 machine provisioning → CSI attach → volume 사용 가능 → node/runtime 초기화 → node Ready로 이어지는 provisioning dependency 경로 전체로 넓혔습니다."
+  ],
+  "hypotheses": [
+    {
+      "label": "Cluster Autoscaler / scheduling 문제",
+      "text": "처음에는 node가 Ready로 전환되지 않는 현상을 autoscaler 또는 scheduling 계층 문제로 의심했지만, 로그는 volume attach 단계에서 실패가 발생하고 있음을 가리켰습니다."
+    },
+    {
+      "label": "CSI/vCenter attach 결함",
+      "text": "플랫폼 벤더와 함께 확인한 결과 vCenter 8.0.3 계열에서 이미 attach된 것으로 오판되는(resource-in-use) 조건이 확인되어 이 가설을 채택했습니다."
+    }
+  ],
+  "evidence": [
+    "vCenter 벤더가 8.0.3 계열의 attach 오판 이슈를 확인해 주었습니다.",
+    "이후 vCenter 업데이트에 해당 수정이 포함되어 있었고, 영향 버전에서는 CSI controller 재시작이 실질적인 workaround였습니다."
+  ],
+  "root_cause": "node 설계상 persistent storage가 node/runtime 부트스트랩 경로에 포함되어 있어, CSI/vCenter의 volume attach 결함이 Cluster Autoscaler 또는 machine provisioning 실패처럼 관측되었습니다. 실제 원인은 vCenter 8.0.3 계열의 attach 처리 결함이었습니다.",
+  "resolution": [
+    "영향 버전에서는 CSI controller를 재시작해 attach 상태를 정리하는 것을 practical workaround로 사용했습니다.",
+    "sandbox vCenter를 수정 사항이 포함된 업데이트 라인으로 업그레이드했습니다."
+  ],
+  "validation": [
+    "업그레이드 후 autoscaling/provisioning 테스트를 반복했습니다.",
+    "동작이 불확실한 구간에서는 추가 로그를 다시 수집했습니다.",
+    "이후 stress test를 여러 차례 반복해도 원래 실패가 재현되지 않음을 확인했습니다."
+  ],
+  "prevention": [
+    "storage가 node bootstrap의 일부인 환경에서는 장애 조사 범위를 Cluster Autoscaler 이벤트에서 멈추지 않고 provisioning dependency 경로 전체로 넓히도록 반영했습니다."
+  ],
+  "lessons": [
+    "storage가 node bootstrap에 포함되어 있으면 CSI/vCenter attach 결함이 autoscaler나 machine-provisioning 장애처럼 보일 수 있습니다. 조사는 Cluster Autoscaler 이벤트가 아니라 provisioning dependency 경로를 따라가야 합니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "PV attachment / node provisioning case note",
+      "path": "evidence/06-sre-troubleshooting-casebook/cases/04-pv-attachment-node-provisioning.md"
+    }
+  ]
+}

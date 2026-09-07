@@ -5,7 +5,7 @@
   "period": "2022.04 – 2022.12",
   "type": "PRODUCTION PROJECT",
   "team": "이테크시스템 플랫폼 담당 · 고객사 인프라팀 · 네트워크팀 협업 / 본인은 Kubernetes 플랫폼 구축과 컴포넌트 연동 담당",
-  "summary": "DMZ에 운영·개발/스테이징·DR, 내부에 운영·개발/스테이징·DR·샌드박스. 서로 통신하지 않는 7개 네트워크 위에 동일한 Kubernetes 플랫폼을 구축했습니다. Supervisor 7개와 게스트 18개, 워커 노드 66대입니다. 클러스터를 세우는 것보다 Ingress·Registry·LoadBalancer·Storage를 환경마다 반복 가능한 형태로 묶는 것이 핵심이었습니다.",
+  "summary": "DMZ에 운영·개발/스테이징·DR, 내부에 운영·개발/스테이징·DR·샌드박스. 서로 통신하지 않는 7개 네트워크 위에 동일한 Kubernetes 플랫폼을 구축했습니다. Supervisor 7개와 게스트 18개, 확인된 워커 노드 66대+입니다. 클러스터를 세우는 것보다 Ingress·Registry·LoadBalancer·Storage를 환경마다 반복 가능한 형태로 묶는 것이 핵심이었습니다.",
   "context": [
     "고객 보안 정책상 DMZ와 내부가 분리되고, 그 안에서도 운영·개발/스테이징·DR이 각각 다른 네트워크를 씁니다. 샌드박스는 내부에만 있고 나머지 여섯 개 어디와도 연결되지 않습니다.",
     "개발과 스테이징은 같은 네트워크를 쓰되 클러스터로 분리합니다. 따라서 그 환경에는 게스트 클러스터가 네 개(STG Shared/Workload, DEV Shared/Workload) 존재합니다.",
@@ -32,7 +32,11 @@
     "환경별 구성 차이를 문서로 고정해 이후 운영·장애 대응에서 참조 가능하게 정리"
   ],
   "architecture": {
-    "diagram": "환경 하나의 구성 (× 7)\n\n  Supervisor Cluster        ← 환경당 1개\n      │\n      ├─ Shared Cluster     CI/CD · 공통 컴포넌트   워커 3대 (전 환경 동일)\n      └─ Workload Cluster   업무 애플리케이션        워커 3~9대 (환경별 상이)\n           개발/스테이징 환경은 DEV·STG 각각 Shared+Workload = 게스트 4개\n      │\n      ├─ AVI Controller / Service Engine ─▶ VIP · LoadBalancer\n      ├─ Harbor  ── replication ──▶ DR 환경 Harbor\n      ├─ MinIO · DHCP · Jumpbox\n      └─ PowerStore CSI ─▶ PersistentVolume\n\n────────────────────────────────────────────────────────────\n구역   환경                Workload 워커\nDMZ    운영 / 개발·스테이징 / DR       3대 (전부 통일)\n내부    운영                        6대\n내부    개발                        9대\n내부    스테이징                     7대\n내부    DR                         5대\n내부    샌드박스                     검증 전용\n────────────────────────────────────────────────────────────\nSupervisor 7 + Shared 9 + Workload 9 = 25개 클러스터 · 워커 66대\n환경 간 연결은 없습니다.",
+    "flow": {
+      "label": "Platform Overview",
+      "mermaid": "flowchart TB\n  subgraph ZONE[\"격리 네트워크 × 7 — 환경 간 통신 없음\"]\n    SUP[\"Supervisor Cluster (환경당 1개)\"] --> SHARED[\"Shared Cluster — CI/CD · 공통 컴포넌트\"]\n    SUP --> WORK[\"Workload Cluster — 업무 애플리케이션\"]\n    SHARED --> ING[\"Ingress / LoadBalancer\"]\n    WORK --> ING\n    SHARED --> REG[\"Registry (Harbor)\"]\n    WORK --> STG[\"Storage (PowerStore CSI)\"]\n  end",
+      "caption": "환경마다 Supervisor 1개 아래 Shared·Workload 게스트 클러스터를 두는 동일한 구성을 7개 네트워크에 반복했습니다. Supervisor 7 + Shared 9 + Workload 9 = 25개 클러스터, 확인된 워커 66대+. 상세 환경별 워커 수는 Home의 Platform Scope 표를 참고하세요."
+    },
     "notes": [
       "고객사 네트워크 대역, 실제 클러스터 이름, 도메인은 제거했습니다. 구조와 규모만 표기합니다."
     ]
@@ -75,7 +79,7 @@
     "샌드박스에서 의도적으로 구성을 깨뜨려 다른 환경에 영향이 없는지 확인"
   ],
   "outcome": [
-    "7개 격리 네트워크에 총 25개 클러스터, 워커 66대 규모로 동일 구성의 Kubernetes 플랫폼을 구축해 운영에 인계했습니다. 현재까지 운영 중입니다.",
+    "7개 격리 네트워크에 총 25개 클러스터, 확인된 워커 66대+ 규모로 동일 구성의 Kubernetes 플랫폼을 구축해 운영에 인계했습니다. 현재까지 운영 중입니다.",
     "환경 구성이 동일하게 유지되어, 이후 Ingress 아키텍처 전환·GitOps 이관·Admission Policy 적용 작업에서 한 환경에서 검증한 절차를 나머지 환경에 반복 적용할 수 있었습니다.",
     "환경별 반복 작업이 명확해지면서 이후 운영 자동화 도구와 GitOps 전환의 우선순위를 정하는 근거가 됐습니다."
   ],

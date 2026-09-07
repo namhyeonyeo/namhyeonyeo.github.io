@@ -23,7 +23,11 @@
     "Pushgateway / PromQL 기반 metric 검증"
   ],
   "architecture": {
-    "diagram": "HTTPProxy CRD ──kubectl/jq──▶ CronJob Exporter\n                              │\n                              ▼\n                         Pushgateway\n                              │ scrape\n                              ▼\n                         Prometheus\n                              │\n                              ▼\n                           PromQL",
+    "flow": {
+      "label": "Data Flow",
+      "mermaid": "flowchart LR\n  CR[\"HTTPProxy / Kubernetes CR\"] -->|kubectl / jq| CJ[\"Collection CronJob\"]\n  CJ -->|push| PG[\"Pushgateway\"]\n  PG -->|scrape| PROM[\"Prometheus\"]\n  PROM --> DASH[\"PromQL / Dashboard / 운영 가시성\"]",
+      "caption": "HTTPProxy CRD 상태를 CronJob이 주기적으로 읽어 Pushgateway로 밀어넣고, Prometheus가 scrape해 PromQL로 조회 가능하게 만드는 흐름입니다."
+    },
     "notes": [
       "실제 exporter 원본은 아직 공개 Evidence로 수집 중입니다."
     ]

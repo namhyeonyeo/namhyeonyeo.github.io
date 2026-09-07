@@ -4,9 +4,10 @@
   "baseHref": "/",
   "name": "NamHyeon Yeo",
   "nameKo": "여남현",
-  "role": "Kubernetes Platform Engineer · 온프레미스 / 망분리",
-  "tagline": "서로 통신할 수 없는 7개 네트워크 위에 같은 Kubernetes 플랫폼을 세우고, 6년간 끊기지 않게 운영해 왔습니다.",
-  "intro": "클라우드를 쓸 수 없는 환경이 전제입니다. 환경끼리 연결되지 않으니 레지스트리도 GitOps 경로도 점프박스도 환경 수만큼 따로 존재합니다. 이 구조에서 25개 클러스터와 워커 66대의 Ingress·Egress·Storage·Registry를 하나의 일관된 플랫폼으로 유지하고, 반복되는 운영 작업을 줄이고, 장애가 나면 Scheduler·CSI·CNI·Autoscaler 로그를 같은 타임라인에 놓고 원인을 찾습니다.",
+  "role": "Kubernetes Platform Engineer",
+  "roleSecondary": "Platform Engineering · SRE · Cloud Infrastructure",
+  "tagline": "온프레미스 엔터프라이즈 환경에서 Kubernetes 플랫폼을 구축하고 운영하며, 구조 개선과 장애 분석을 이어왔습니다.",
+  "heroSecondary": "네트워크, GitOps, 관측성, 운영 정책과 자동화를 실제 운영 환경에서 개선해 왔습니다.",
   "availability": {
     "status": "이직 준비 중",
     "note": "재직 중 · 협의 후 입사 가능",
@@ -34,7 +35,7 @@
     },
     {
       "value": "클러스터 25개",
-      "label": "Supervisor 7 · Shared 9 · Workload 9 · 워커 66대"
+      "label": "Supervisor 7 · Shared 9 · Workload 9 · 확인된 워커 66대+"
     },
     {
       "value": "CKA",
@@ -43,7 +44,7 @@
   ],
   "platformScope": {
     "title": "담당 플랫폼 규모",
-    "lead": "국내 카드사 한 곳의 온프레미스 Kubernetes 플랫폼입니다. vSphere 8 위의 VMware VKS 기반으로, 서로 통신하지 않는 7개 네트워크에 총 25개 클러스터와 워커 노드 66대가 있습니다.",
+    "lead": "국내 카드사 한 곳의 온프레미스 Kubernetes 플랫폼입니다. vSphere 8 위의 VMware VKS 기반으로, 서로 통신하지 않는 7개 네트워크에 총 25개 클러스터와 확인된 워커 노드 66대+가 있습니다.",
     "zones": [
       {
         "name": "DMZ",
@@ -83,8 +84,8 @@
       },
       {
         "label": "워커 노드",
-        "value": "66대",
-        "detail": "Shared 27 · Workload 39"
+        "value": "확인된 66대+",
+        "detail": "Shared 27 · Workload 39 (샌드박스 Workload 미확정)"
       }
     ],
     "clusters": [
@@ -168,6 +169,16 @@
       ]
     },
     {
+      "group": "Troubleshooting / SRE",
+      "items": [
+        "장애 RCA 타임라인 분석",
+        "가설 수립 및 배제",
+        "kubectl / journalctl / tcpdump 기반 조사",
+        "Runbook 작성",
+        "복합 장애 원인 분리"
+      ]
+    },
+    {
       "group": "GitOps / Delivery",
       "items": [
         "ArgoCD",
@@ -186,8 +197,6 @@
         "Grafana",
         "Pushgateway",
         "Splunk",
-        "장애 RCA · 타임라인 분석",
-        "Runbook 작성",
         "OpenTelemetry (Self Study)"
       ]
     },

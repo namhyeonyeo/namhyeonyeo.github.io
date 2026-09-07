@@ -1,6 +1,6 @@
 {
   "slug": "egress-source-ip-path",
-  "order": 6,
+  "order": 2,
   "title": "Antrea Egress Path Validation / Outbound Source IP 추적",
   "date": "2023.09 – 2024.02",
   "category": "Networking / CNI",

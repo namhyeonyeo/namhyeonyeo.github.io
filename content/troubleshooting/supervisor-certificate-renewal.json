@@ -1,6 +1,6 @@
 {
   "slug": "supervisor-certificate-renewal",
-  "order": 4,
+  "order": 5,
   "title": "Supervisor Certificate Recovery / 인증서 및 Control Plane 복구",
   "date": "Production incident · date omitted",
   "category": "Kubernetes Control Plane / Certificates",

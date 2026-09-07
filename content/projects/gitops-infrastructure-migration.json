@@ -31,7 +31,16 @@
     "Splunk 연동, PowerStore CSM, AKO 구성을 GitOps 관리 대상으로 순차 이관"
   ],
   "architecture": {
-    "diagram": "Before\n  점프박스\n    ├─ kubectl apply\n    └─ helm upgrade\n         │\n         ▼\n     Kubernetes  ← 현재 상태가 어느 파일과 같은지 사람이 기억\n\nAfter\n  GitLab (환경별)\n    │  merge\n    ▼\n  ArgoCD (공유 클러스터)\n    │  sync\n    ▼\n  Kubernetes  ← 변경 이력이 Git에 남음\n\n이관 순서\n  현재 리소스 조사 ─▶ Git 정의 작성 ─▶ kubectl diff로 차이 확인\n    ─▶ Application 연결 (기존 경로 유지) ─▶ sync 결과 검증\n    ─▶ 기존 Helm/수동 소유권 제거",
+    "asIs": {
+      "label": "AS-IS",
+      "mermaid": "flowchart LR\n  OP[\"운영자\"] --> JB[\"Jumpbox\"]\n  JB --> YAML[\"Manual YAML / Helm\"]\n  YAML --> EXEC[\"kubectl apply / helm upgrade\"]\n  EXEC --> K8S[\"Kubernetes Cluster\"]",
+      "caption": "현재 클러스터 상태가 어느 파일과 같은지 사람이 기억해야 하는 구조였습니다."
+    },
+    "toBe": {
+      "label": "TO-BE",
+      "mermaid": "flowchart LR\n  GIT[\"GitLab Repository (환경별)\"] -->|merge| ARGO[\"ArgoCD (공유 클러스터)\"]\n  ARGO -->|sync| K8S[\"Kubernetes Cluster\"]\n  K8S -.sync status.-> ARGO",
+      "caption": "리소스 소유권이 Git으로 이동해 변경 이력이 저장소에 남습니다. 이관 순서: 현재 리소스 조사 → Git 정의 작성 → kubectl diff 확인 → Application 연결(기존 경로 유지) → sync 검증 → 기존 소유권 제거."
+    },
     "notes": [
       "핵심은 ArgoCD 설치가 아니라 소유권 이전 구간을 안전하게 통과하는 것입니다.",
       "기존 관리 경로를 마지막에 제거하는 순서가 전체 설계의 전제입니다."

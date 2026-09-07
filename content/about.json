@@ -3,7 +3,8 @@
     {
       "heading": "What I do",
       "body": [
-        "온프레미스 인프라에서 Kubernetes 플랫폼을 구축하는 것으로 커리어를 시작했습니다. 클러스터 자체뿐 아니라 Ingress, Load Balancer, Storage, Registry, RBAC, CI/CD까지 연결해야 실제 서비스 플랫폼이 된다는 것을 여러 프로젝트에서 경험했습니다."
+        "온프레미스 인프라에서 Kubernetes 플랫폼을 구축하는 것으로 커리어를 시작했습니다. 클러스터 자체뿐 아니라 Ingress, Load Balancer, Storage, Registry, RBAC, CI/CD까지 연결해야 실제 서비스 플랫폼이 된다는 것을 여러 프로젝트에서 경험했습니다.",
+        "클라우드를 쓸 수 없는 환경이 전제입니다. 환경끼리 연결되지 않으니 레지스트리도 GitOps 경로도 점프박스도 환경 수만큼 따로 존재합니다. 이 구조에서 25개 클러스터와 확인된 워커 66대+의 Ingress·Egress·Storage·Registry를 하나의 일관된 플랫폼으로 유지하고, 반복되는 운영 작업을 줄이고, 장애가 나면 Scheduler·CSI·CNI·Autoscaler 로그를 같은 타임라인에 놓고 원인을 찾습니다."
       ]
     },
     {

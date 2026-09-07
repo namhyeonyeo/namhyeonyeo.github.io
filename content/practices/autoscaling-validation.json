@@ -35,15 +35,15 @@
   "evidence_links": [
     {
       "label": "Test runbook",
-      "path": "evidence/02-kubernetes-autoscaling-lab/docs/09_test_scenario_runbook.md"
+      "path": "evidence/02-kubernetes-autoscaler-validation/docs/09_test_scenario_runbook.md"
     },
     {
       "label": "HPA target manifest",
-      "path": "evidence/02-kubernetes-autoscaling-lab/manifests/02_target_deployment_hpa.yaml"
+      "path": "evidence/02-kubernetes-autoscaler-validation/manifests/02_target_deployment_hpa.yaml"
     },
     {
       "label": "Scale-down scenarios",
-      "path": "evidence/02-kubernetes-autoscaling-lab/manifests/07_scaledown_test.yaml"
+      "path": "evidence/02-kubernetes-autoscaler-validation/manifests/07_scaledown_test.yaml"
     }
   ]
 }

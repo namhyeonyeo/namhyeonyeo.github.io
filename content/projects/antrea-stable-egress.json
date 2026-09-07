@@ -21,7 +21,11 @@
     "Test Pod에서 remote host까지 통신 생성 및 원격 tcpdump 검증"
   ],
   "architecture": {
-    "diagram": "Selected Pod\n    │\n    ▼\nAntrea Egress policy\n    │\n    ▼\nEgress-capable Node\n    │ SNAT: stable Egress IP\n    ▼\nFirewall → External System",
+    "flow": {
+      "label": "Egress Path",
+      "mermaid": "flowchart LR\n  POD[\"Selected Pod\"] --> POLICY[\"Antrea Egress Policy\"]\n  POLICY --> NODE[\"Egress-capable Node\"]\n  NODE -->|SNAT: stable Egress IP| FW[\"Firewall\"]\n  FW --> EXT[\"External System\"]",
+      "caption": "podSelector로 선택된 Pod만 지정된 Egress-capable Node를 통해 고정 IP로 SNAT되어 나갑니다."
+    },
     "notes": [
       "공개 YAML은 RFC 5737 documentation address로 sanitization했습니다."
     ]

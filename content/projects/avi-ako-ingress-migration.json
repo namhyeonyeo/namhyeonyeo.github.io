@@ -24,9 +24,18 @@
     "전환 구조 구현·검증 및 환경별 cutover/troubleshooting 지원"
   ],
   "architecture": {
-    "diagram": "Control plane\nIngress / AVI CRs\n      │\n      ▼\n     AKO ─────▶ AVI Controller\n                    │\n                    ▼\n               Virtual Service\n\nRuntime data plane\nClient → DNS → AVI VIP → Service Engine → Kubernetes Service → Pod",
+    "asIs": {
+      "label": "AS-IS",
+      "mermaid": "flowchart TB\n  subgraph CP[\"Control Plane\"]\n    HP[\"HTTPProxy / Ingress\"] --> CT[\"Contour Controller\"]\n    CT --> ENVCFG[\"Envoy Config\"]\n  end\n  subgraph DP[\"Runtime Data Plane\"]\n    CLI[\"Client\"] --> DNS[\"DNS\"]\n    DNS --> VIP[\"AVI VIP / Service Engine\"]\n    VIP --> ENV[\"Envoy\"]\n    ENV --> SVC[\"Kubernetes Service\"]\n    SVC --> POD[\"Pod\"]\n  end\n  ENVCFG -.configures.-> ENV",
+      "caption": "Contour/HTTPProxy가 Envoy 설정을 생성하고, Envoy가 AVI VIP 뒤에서 실제 트래픽을 처리하는 구조였습니다."
+    },
+    "toBe": {
+      "label": "TO-BE",
+      "mermaid": "flowchart TB\n  subgraph CP[\"Control Plane\"]\n    ING[\"Ingress / AviInfraSetting / IngressClass\"] --> AKO[\"AKO\"]\n    AKO --> AVICTRL[\"AVI Controller\"]\n    AVICTRL --> VS[\"Virtual Service Config\"]\n  end\n  subgraph DP[\"Runtime Data Plane\"]\n    CLI[\"Client\"] --> DNS[\"DNS\"]\n    DNS --> VIP[\"AVI VIP / Service Engine\"]\n    VIP --> SVC[\"Kubernetes Service\"]\n    SVC --> POD[\"Pod\"]\n  end\n  VS -.configures.-> VIP",
+      "caption": "AKO가 Ingress/AviInfraSetting을 AVI Controller의 Virtual Service 설정으로 변환하고, AVI VIP가 Envoy 없이 직접 Service까지 트래픽을 전달합니다."
+    },
     "notes": [
-      "공개 포트폴리오에서는 고객 IP·FQDN·실제 VIP를 제거하고 control plane과 runtime data plane을 분리해 설명합니다."
+      "공개 포트폴리오에서는 고객 IP·FQDN·실제 VIP를 제거하고 control plane 설정 경로와 runtime data plane 트래픽 경로를 분리해 표기했습니다."
     ]
   },
   "decisions": [
