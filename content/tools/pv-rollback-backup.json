@@ -1,0 +1,39 @@
+{
+  "slug": "pv-rollback-backup",
+  "order": 2,
+  "featured": true,
+  "homeOrder": 2,
+  "name": "pv-rollback-backup.sh",
+  "titleKo": "스토리지 전환 롤백 자료 수집",
+  "category": "Storage Operations",
+  "language": "Bash",
+  "stage": "production",
+  "sourceStatus": "실제 운영 스크립트 · 전문 공개 (예시 값만 치환)",
+  "problem": "스토리지 어레이 교체에서 PVC를 새 StorageClass로 다시 만드는 것보다 되돌리는 쪽이 어려웠습니다. 기존 PV의 reclaim policy, claimRef에 박힌 PVC UID, 워크로드 마운트 관계는 전환한 뒤에 알아내려면 이미 늦습니다.",
+  "whatItDoes": [
+    "Namespace 또는 StorageClass 단위로 대상 PVC를 골라 PVC·PV·StorageClass를 한 번에 수집",
+    "되돌릴 때 대조할 값을 CSV 한 줄로 정리 (PV, reclaimPolicy, CSI volumeHandle, 기존 PVC UID, claimRef UID)",
+    "`status`와 클러스터가 채운 metadata·annotation을 걷어낸 reference YAML 생성",
+    "기존 PV를 다시 잡도록 `spec.volumeName`을 명시한 롤백용 PVC YAML 생성",
+    "`kubectl create --dry-run=client -o yaml`로 생성한 YAML이 적용 가능한 형태인지 미리 확인",
+    "롤백 순서 README와 대상 PV 목록을 같은 디렉터리에 남김"
+  ],
+  "usage": "./pv-rollback-backup.sh\n./pv-rollback-backup.sh -n <namespace>\n./pv-rollback-backup.sh -s <storageclass>\n./pv-rollback-backup.sh -d /backup/migration",
+  "output": "Rollback backup completed.\nOutput: ./pv-rollback-backup_20260115_101233\n\nTree:\n./00_inventory/rollback-mapping.csv\n./01_pvc_reference/<namespace>__<pvc>.yaml\n./02_pv_reference/<pv>.yaml\n./03_storageclass/<storageclass>.yaml\n./04_rollback_pvc/<namespace>__<pvc>.yaml\n./05_rollback/rollback-pvs.txt\n./05_rollback/README.txt",
+  "safety": [
+    "조회와 파일 생성만 합니다. Kubernetes 리소스를 만들거나 바꾸거나 지우지 않습니다.",
+    "`kubectl`과 `jq`가 없으면 아무 것도 하지 않고 종료합니다.",
+    "PV reference YAML에서는 `claimRef`를 일부러 남깁니다. 어떤 PVC에 묶여 있었는지가 롤백 판단의 근거입니다.",
+    "기록한 기존 PVC UID는 재사용용이 아니라 대조용입니다. 롤백 PVC는 UID 없이 `volumeName`으로 기존 PV를 잡습니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "스크립트 전문",
+      "path": "evidence/07-operations-toolkit/scripts/pv-rollback-backup.sh"
+    },
+    {
+      "label": "생성물 구조와 롤백 순서",
+      "path": "evidence/07-operations-toolkit/docs/pv-rollback-backup.md"
+    }
+  ]
+}

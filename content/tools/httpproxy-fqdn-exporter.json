@@ -1,0 +1,34 @@
+{
+  "slug": "httpproxy-fqdn-exporter",
+  "order": 3,
+  "featured": true,
+  "homeOrder": 3,
+  "name": "HTTPProxy FQDN Exporter",
+  "titleKo": "인그레스 커스텀 메트릭",
+  "category": "Observability",
+  "language": "Bash · CronJob",
+  "stage": "production",
+  "sourceStatus": "운영 적용 · 원본 스크립트 미공개, 재현 예제 공개",
+  "problem": "Contour와 Envoy의 기본 지표로는 지금 이 FQDN을 어떤 HTTPProxy가 받고 있는지 바로 볼 수 없었습니다. 도메인 단위로 문제를 추적할 때마다 `kubectl get httpproxy -A`를 다시 치고 있었습니다.",
+  "whatItDoes": [
+    "HTTPProxy CR을 주기적으로 읽어 Namespace, HTTPProxy 이름, FQDN, 상태를 뽑음",
+    "없던 metric `contour_httpproxy_info`를 만들어 Pushgateway로 전달",
+    "Prometheus가 Pushgateway를 scrape해 FQDN 단위로 조회 가능하게 함",
+    "HTTPProxy read 권한만 가진 ServiceAccount / ClusterRole / ClusterRoleBinding으로 실행",
+    "상주 exporter 대신 CronJob으로 두어 패키지로 관리되는 Prometheus 구성을 건드리지 않음"
+  ],
+  "usage": "# 상태가 valid가 아닌 HTTPProxy를 도메인과 함께 조회\ncontour_httpproxy_info{status!=\"valid\"}\n\n# 특정 FQDN을 담당하는 HTTPProxy 확인\ncontour_httpproxy_info{fqdn=\"app.example.com\"}\n\n# Namespace별 HTTPProxy 수\ncount by (namespace) (contour_httpproxy_info)",
+  "output": "contour_httpproxy_info{namespace=\"app-a\",httpproxy=\"app-a-web\",fqdn=\"app.example.com\",status=\"valid\"} 1\ncontour_httpproxy_info{namespace=\"app-b\",httpproxy=\"app-b-api\",fqdn=\"api.example.com\",status=\"invalid\"} 1",
+  "safety": [
+    "권한을 HTTPProxy `get`/`list`까지만 부여했습니다.",
+    "기존 Prometheus 설정을 덮어쓰지 않고 Pushgateway 경로로 데이터를 추가했습니다.",
+    "공개본은 재현 예제입니다. 내부 endpoint가 들어간 원본 스크립트는 올리지 않았습니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "수집 · RBAC · PromQL 재현 예제",
+      "path": "evidence/07-operations-toolkit/docs/httpproxy-fqdn-exporter.md"
+    }
+  ],
+  "related_project": "ingress-observability-extension"
+}

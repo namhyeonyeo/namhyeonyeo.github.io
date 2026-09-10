@@ -1,7 +1,7 @@
 {
   "slug": "egress-source-ip-path",
   "order": 2,
-  "title": "Antrea Egress Path Validation / Outbound Source IP 추적",
+  "title": "Egress Source IP 검증 / 방화벽에 등록할 주소 확정",
   "date": "2023.09 – 2024.02",
   "category": "Networking / CNI",
   "evidence_status": "Manifest + validation note available",
@@ -13,23 +13,31 @@
     "Firewall / Remote Host"
   ],
   "symptoms": [
-    "외부 연동에서 어떤 source IP를 방화벽 기준으로 사용해야 하는지 명확히 검증해야 했습니다."
+    "외부 시스템이 출발지 IP로 접근을 허용하는데, Antrea Egress를 적용한 뒤 그 Pod가 실제로 어떤 주소로 나가는지 확신할 수 없었습니다.",
+    "매니페스트는 적용됐지만 방화벽에 등록할 주소를 설정 값만 보고 정할 수는 없었습니다."
   ],
   "architecture": "Labeled Pod → Antrea Egress → SNAT Egress IP → Remote Host",
   "investigation": [
-    "ExternalIPPool과 Egress selector가 어느 node/workload에 적용되는지 확인했습니다.",
-    "Test Pod에서 remote host로 traffic을 만들고 remote-side tcpdump를 수행했습니다."
+    "ExternalIPPool과 Egress의 nodeSelector / podSelector가 어느 노드와 어느 Pod에 걸리는지 먼저 확인했습니다.",
+    "Egress IP가 선택된 노드에 실제로 올라와 있는지, 외부로 나가는 route interface가 무엇인지 노드에서 확인했습니다.",
+    "테스트 Pod에서 목적지로 트래픽을 만들고, 같은 시간에 상대 서버에서 tcpdump를 잡았습니다."
   ],
   "hypotheses": [
     {
-      "label": "Node IP가 source로 보일 수 있음",
-      "text": "정책 검증은 추측이 아니라 remote packet capture로 확인했습니다."
+      "label": "노드 IP가 그대로 출발지로 보일 것이다",
+      "text": "Egress를 적용하기 전 기본 동작은 노드 IP로 SNAT되는 것이라, 정책이 걸리지 않으면 노드 IP가 그대로 나갑니다. 이 경우와 구분하려면 캡처된 주소를 직접 봐야 했습니다."
+    },
+    {
+      "label": "설정만으로는 확정할 수 없다",
+      "text": "selector가 맞아 보여도 CNI가 Egress IP를 다른 노드에 배치하거나 예상과 다른 지점에서 NAT할 수 있습니다. 반대편 캡처를 근거로 삼기로 했습니다."
     }
   ],
   "evidence": [
-    "remote host packet capture에서 configured Egress IP가 source address로 관측되는지 확인하는 검증 절차가 남아 있습니다."
+    "상대 서버 tcpdump에서 출발지 주소가 설정한 Egress IP로 관측됨",
+    "Egress IP가 selector로 지정한 노드에 실제로 존재하는지 확인한 기록",
+    "적용한 ExternalIPPool / Egress 매니페스트 (문서용 IP로 치환)"
   ],
-  "root_cause": "장애 RCA라기보다 Egress/SNAT 정책의 실제 datapath를 검증해 firewall source policy와 Kubernetes workload selection을 연결한 network validation case입니다.",
+  "root_cause": "장애가 아니라 확정이 필요했던 사례입니다. Egress 정책이 적용됐다는 것과 트래픽이 그 주소로 나간다는 것은 다른 사실이어서, 반대편 packet capture로 출발지 주소를 확인하고 나서야 방화벽에 등록할 IP를 정했습니다.",
   "resolution": [
     "nodeSelector / podSelector 기반 ExternalIPPool + Egress 구성을 적용했습니다."
   ],
@@ -37,10 +45,11 @@
     "Remote-side tcpdump로 source address 확인"
   ],
   "prevention": [
-    "외부 연동 onboarding 시 Egress policy 대상 label과 source IP를 함께 점검하도록 합니다."
+    "외부 연동을 새로 붙일 때 Egress 대상 label과 실제 출발지 IP를 같이 확인하도록 절차에 넣었습니다.",
+    "이 확인 과정을 `cluster-ssh egress-check`로 옮겨서, Pod 탐색부터 SNAT 판정까지 한 명령으로 실행하고 결과를 로그로 남기게 했습니다."
   ],
   "lessons": [
-    "SNAT 위치와 selection rule은 문서만 읽지 않고 반대편 packet capture로 확인하면 가장 명확합니다."
+    "SNAT이 어디서 일어나는지는 문서가 아니라 반대편 캡처가 알려줍니다. 확인 절차가 길어질수록 사람이 건너뛰게 되므로, 같은 판정을 반복할 것 같으면 도구로 묶는 편이 낫습니다."
   ],
   "evidence_links": [
     {

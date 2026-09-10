@@ -1,22 +1,36 @@
 {
   "slug": "argocd-repository-bootstrap",
-  "order": 1,
+  "order": 5,
+  "featured": true,
   "name": "create-argocd-repositories.sh",
-  "category": "gitops",
+  "titleKo": "ArgoCD 저장소 일괄 등록",
+  "category": "GitOps",
   "language": "Bash",
-  "problem": "GitOps 이관 과정에서 여러 repository 등록 작업을 반복해야 했고, 운영용 원본 script에는 내부 endpoint / credential을 직접 넣으면 공개할 수 없었습니다.",
-  "purpose": "Repository 등록 흐름을 재사용하되 credential을 environment variable로 주입하는 공개용 예제로 정리했습니다.",
-  "usage": "export GITLAB_URL=https://gitlab.example.com\nexport GITLAB_USERNAME=<user>\nexport GITLAB_PASSWORD=<token>\n./create-argocd-repositories.sh",
-  "example": "[INFO] adding repository: platform-config\n[OK] repository registered",
-  "safety": [
-    "실제 password/token은 파일에 저장하지 않습니다.",
-    "내부 domain은 example.com으로 sanitization합니다."
+  "stage": "production",
+  "sourceStatus": "실제 운영 스크립트 · credential 주입 방식으로 재작성해 공개",
+  "problem": "GitOps 이관 중에 환경마다 같은 저장소 등록을 반복했습니다. 환경이 일곱 개라 프로젝트 수만큼 곱해지는데, 원본 스크립트에는 내부 GitLab 주소와 계정이 들어 있어 그대로 둘 수 없었습니다.",
+  "whatItDoes": [
+    "프로젝트 이름 목록 파일을 읽어 ArgoCD repository Secret을 한 번에 생성",
+    "`argocd.argoproj.io/secret-type: repository` 라벨과 AppProject를 지정해 등록",
+    "저장소 URL 규칙(프로젝트명 대문자 + `/infra.git`)을 스크립트가 조립",
+    "GitLab 주소·계정·토큰과 ArgoCD Namespace·Project를 환경 변수로 받음"
   ],
-  "repository": "CHANGE_ME.github.io",
+  "usage": "export GITLAB_URL=https://git.example.com\nexport GITLAB_USERNAME=<user>\nexport GITLAB_PASSWORD=<token>\nexport ARGOCD_PROJECT=platform-infra\n\n./create-argocd-repositories.sh project_name.txt",
+  "output": "secret/repo-platform-a created\nsecret/repo-platform-b created\nsecret/repo-platform-c created",
+  "safety": [
+    "credential을 파일에 두지 않고 환경 변수로만 받습니다. 값이 없으면 실행 전에 멈춥니다.",
+    "내부 GitLab 주소는 공개본에서 `git.example.com`으로 바꿨습니다.",
+    "생성 대상은 repository Secret 하나로 한정했습니다. Application이나 워크로드를 만들지 않습니다."
+  ],
   "evidence_links": [
     {
-      "label": "Sanitized script",
+      "label": "스크립트 전문",
       "path": "evidence/04-kubernetes-gitops-migration/scripts/create-argocd-repositories.sh"
+    },
+    {
+      "label": "공개 시 제거한 항목",
+      "path": "evidence/04-kubernetes-gitops-migration/SECURITY-NOTES.md"
     }
-  ]
+  ],
+  "related_project": "gitops-infrastructure-migration"
 }

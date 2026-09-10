@@ -138,8 +138,8 @@
       },
       {
         "label": "직접 만든 것",
-        "text": "Egress datapath 검증을 한 명령으로 끝내는 운영 CLI",
-        "href": "tools/"
+        "text": "노드 접속부터 Egress SNAT 판정까지 한 명령으로 끝내는 cluster-ssh",
+        "href": "tools/#cluster-ssh"
       }
     ]
   },

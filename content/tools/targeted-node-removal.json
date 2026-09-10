@@ -1,0 +1,10 @@
+{
+  "slug": "targeted-node-removal",
+  "order": 13,
+  "featured": false,
+  "name": "Targeted Node Removal",
+  "titleKo": "줄일 노드를 직접 지정하기",
+  "category": "Cluster Lifecycle",
+  "note": "replica만 줄이면 어느 노드가 빠질지 선택할 수 없습니다. 먼저 대상 Machine에 delete-machine 주석을 달아두고 replica를 줄여, 의도한 노드가 제거되게 합니다.",
+  "command": "kubectl annotate machine <machine> -n <ns> \\\n  cluster.x-k8s.io/delete-machine=\"yes\"\n\n# MachineDeployment 대상이 맞는지 확인한 뒤 replica 조정\nkubectl edit cluster <cluster> -n <ns>"
+}

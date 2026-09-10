@@ -29,7 +29,7 @@
   "evidence": [
     "sanitized AppProject / repository creation example과 migration playbook이 남아 있습니다."
   ],
-  "root_cause": "GitOps 전환에서는 object 자체보다 management ownership의 전환 구간이 위험합니다. 동일 object를 두 관리 경로가 동시에 건드리지 않도록 inventory → sync → validation → old ownership cleanup 순서가 필요했습니다.",
+  "root_cause": "같은 Kubernetes 오브젝트를 기존 Helm/수동 경로와 새 ArgoCD Application이 동시에 관리하는 구간이 문제였습니다. 여기서 기존 소유권을 먼저 정리하면 이미 GitOps로 넘어간 리소스까지 삭제될 수 있어, 조사 → sync → 검증 → 기존 소유권 정리 순서를 지켜야 했습니다.",
   "resolution": [
     "기존 resource를 먼저 삭제하지 않고 ArgoCD sync와 service validation을 완료한 뒤 old ownership을 단계적으로 정리했습니다."
   ],
@@ -41,7 +41,7 @@
     "migration runbook에 ownership 확인과 cleanup gate를 별도 단계로 유지합니다."
   ],
   "lessons": [
-    "GitOps migration의 핵심은 manifest copy가 아니라 ownership transfer입니다."
+    "GitOps 이관에서 위험한 것은 매니페스트를 옮기는 일이 아니라 소유권이 겹치는 구간입니다. 이 구간을 얼마나 짧게 만드는지가 아니라, 그 구간에서 무엇을 지우지 않는지가 중요했습니다."
   ],
   "evidence_links": [
     {

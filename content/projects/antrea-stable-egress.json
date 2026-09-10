@@ -4,12 +4,12 @@
   "title": "Antrea Egress / 고정 Outbound Source IP 설계",
   "period": "2023.09 – 2024.02",
   "type": "PRODUCTION PROJECT",
-  "summary": "노드 lifecycle과 외부 방화벽 정책을 분리하기 위해 선택된 Pod 트래픽을 고정 Egress IP로 SNAT하고 remote-side packet capture로 검증했습니다.",
+  "summary": "외부 연동 대상이 source IP allowlist를 쓰는데, Pod가 나가는 주소가 노드 IP라서 노드를 교체할 때마다 방화벽 신청이 따라붙었습니다. 선택한 Pod만 고정 Egress IP로 SNAT되게 하고, 반대편에서 tcpdump로 실제 source를 확인했습니다.",
   "context": [
-    "외부 시스템이 source IP allowlist를 사용하는 환경에서 Kubernetes node IP를 그대로 source 기준으로 쓰면 node lifecycle과 방화벽 정책이 결합됩니다."
+    "외부 시스템이 출발지 IP로 접근을 허용하는 환경이었습니다. Pod 트래픽이 노드 IP로 나가면 그 노드가 바뀔 때마다 상대편 방화벽도 같이 바뀌어야 합니다."
   ],
   "problem": [
-    "노드 변경 시 외부 시스템의 allowlist까지 계속 수정해야 할 수 있었습니다."
+    "노드를 늘리거나 교체할 때마다 외부 allowlist 변경을 요청해야 했고, 그 요청이 끝나기 전에는 연동이 끊길 수 있었습니다."
   ],
   "constraints": [
     "고객 network / firewall 정책",
@@ -32,8 +32,12 @@
   },
   "decisions": [
     {
-      "label": "Node IP 대신 stable Egress IP",
-      "text": "Node scale/replacement와 외부 firewall source policy를 분리하기 위해 workload selection 기반 Egress IP를 사용했습니다."
+      "label": "노드가 아니라 워크로드를 기준으로 고른다",
+      "text": "Egress IP를 노드에 고정하는 대신 podSelector로 대상을 지정했습니다. 이렇게 하면 Pod가 다른 노드로 옮겨가도 나가는 주소가 그대로입니다."
+    },
+    {
+      "label": "설정 확인이 아니라 반대편 캡처로 판정",
+      "text": "매니페스트가 적용됐다고 SNAT이 의도대로 되는 것은 아닙니다. 상대 서버에서 tcpdump를 잡아 출발지 주소를 직접 보고 나서야 정상으로 봤습니다."
     }
   ],
   "implementation": [
@@ -46,7 +50,8 @@
     "remote server tcpdump에서 source address가 configured Egress IP인지 확인"
   ],
   "outcome": [
-    "노드 IP 변경과 무관하게 외부 연동에 사용할 고정 source IP 구조를 검증했습니다."
+    "외부에 등록하는 출발지 주소가 노드 수명과 분리됐습니다. 노드를 교체해도 상대편 방화벽 신청을 다시 하지 않습니다.",
+    "이때 만든 확인 절차는 이후 `cluster-ssh egress-check`로 옮겨서 한 명령으로 실행하게 했습니다."
   ],
   "technologies": [
     "Kubernetes",

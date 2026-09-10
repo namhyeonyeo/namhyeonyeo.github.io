@@ -1,0 +1,36 @@
+{
+  "slug": "cluster-ssh",
+  "order": 1,
+  "featured": true,
+  "homeOrder": 1,
+  "name": "cluster-ssh",
+  "titleKo": "노드 작업 CLI",
+  "category": "Node Operations",
+  "language": "Bash",
+  "stage": "production",
+  "version": "v3.0.0",
+  "sourceStatus": "실제 운영 CLI · 공개본은 경로/IP 치환",
+  "problem": "노드에 붙어 뭔가 확인할 때마다 순서가 같았습니다. 클러스터를 고르고, kubeconfig를 찾고, Internal IP를 복사해서 ssh를 치고, 키 경로를 기억해내는 순서입니다. 환경이 일곱 개라 클러스터마다 kubeconfig와 private key가 따로 있어서 이 과정이 매번 반복됐습니다.",
+  "whatItDoes": [
+    "클러스터 이름과 노드 이름(또는 Internal IP, 목록 index)만으로 노드에 SSH 접속",
+    "`list` / `nodes`로 클러스터·노드 목록 조회, 클러스터만 주면 노드를 골라서 접속",
+    "`doctor`로 Node describe, 해당 노드의 Pod, Node Event, 원격 노드 점검 결과를 한 파일에 수집",
+    "`egress-check`로 Pod → Egress Node → 외부 구간의 SNAT 여부를 tcpdump·conntrack 증거로 판정",
+    "static 모드는 config에 선언한 경로를, supervisor 모드는 Cluster API와 kubeconfig/ssh Secret에서 접속 정보를 해석",
+    "클러스터 이름·노드 이름·노드 IP를 Bash completion으로 채움"
+  ],
+  "usage": "cluster-ssh list\ncluster-ssh nodes dev-workload\ncluster-ssh dev-workload worker-node-01\ncluster-ssh exec dev-workload worker-node-01 -- 'sudo journalctl -u kubelet -n 100 --no-pager'\ncluster-ssh doctor dev-workload worker-node-01\ncluster-ssh egress-check dev-workload worker-node-01 \\\n  --egress-ip 192.0.2.92 --dst 198.51.100.60 --port 22",
+  "output": "[PASS] Egress IP is present on the selected Egress Node.\n[PASS] TCP connectivity from fix-tool/... succeeded.\n[PASS] Outbound traffic with source Egress IP 192.0.2.92 was observed.\n[PASS] Return traffic to Egress IP 192.0.2.92 was observed.\n\n# SNAT 증거가 없으면\n[FAIL] Expected SNAT source 192.0.2.92 was not observed on the external interface.\n\n# 같은 IP에 MAC이 둘 이상 응답하면\n[CRITICAL] Multiple MAC addresses responded for the Egress IP.",
+  "safety": [
+    "`egress-check`는 상태를 읽고 TCP 연결만 만듭니다. Egress IP 해제, conntrack 삭제, iptables/nftables 변경, cordon/drain, service restart를 하지 않습니다.",
+    "대상 Pod가 애매하면 임의로 고르지 않고 실패합니다. prefix가 맞는 Running Pod가 둘 이상이면 `--pod`를 요구합니다.",
+    "SSH는 지정한 키로만 붙습니다. 비밀번호 인증을 끄고 `IdentitiesOnly=yes`, `PasswordAuthentication=no`를 고정했습니다.",
+    "판정 결과를 exit code로 구분합니다. 0 정상, 1 준비 오류, 2 연결 실패 또는 SNAT 미확인, 3 복수 ARP MAC."
+  ],
+  "evidence_links": [
+    {
+      "label": "cluster-ssh v3 사용 기록과 판정 기준",
+      "path": "evidence/07-operations-toolkit/docs/cluster-ssh-runbook.md"
+    }
+  ]
+}

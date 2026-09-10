@@ -1,0 +1,11 @@
+{
+  "slug": "argocd-finalizer-cleanup",
+  "order": 12,
+  "featured": false,
+  "name": "ArgoCD Non-cascade Cleanup",
+  "titleKo": "Application만 지우고 리소스는 남기기",
+  "category": "GitOps",
+  "note": "워크로드 클러스터의 ArgoCD를 걷어낼 때 씁니다. Application의 finalizer를 먼저 비우고 삭제해, 그 Application이 관리하던 실제 리소스가 함께 지워지지 않게 합니다.",
+  "command": "kubectl patch application <app> -n argocd \\\n  --type merge -p '{\"metadata\":{\"finalizers\":[]}}'\nkubectl delete application <app> -n argocd --cascade=orphan",
+  "related_case": "argocd-resource-ownership"
+}

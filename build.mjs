@@ -228,7 +228,7 @@ const NAV = [
   ['Projects · 프로젝트', 'projects/'],
   ['Troubleshooting · 장애 분석', 'troubleshooting/'],
   ['Practices · 운영·검증', 'practices/'],
-  ['Tools · 자동화', 'tools/'],
+  ['Toolkit · 운영 자동화', 'tools/'],
   ['About · 소개', 'about/'],
 ];
 
@@ -333,6 +333,17 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
     )
     .join('');
 
+  // Home shows only the tools that declare a homeOrder; the full toolkit
+  // lives on /tools/.
+  const homeTools = tools
+    .filter((t) => typeof t.homeOrder === 'number')
+    .sort((a, b) => a.homeOrder - b.homeOrder)
+    .map(
+      (t) =>
+        `<li><a href="${url('tools/#' + t.slug)}"><span class="idx-cat">${esc(t.category)}</span><span class="idx-title">${esc(t.name)}${t.titleKo ? ` <span class="idx-title-ko">${esc(t.titleKo)}</span>` : ''}</span><span class="idx-sum">${esc(t.problem)}</span></a></li>`
+    )
+    .join('');
+
   const availability = site.availability ? `
   <div class="availability">
     <b>${esc(site.availability.status)}</b>
@@ -401,6 +412,12 @@ ${readingGuide}
   <ul class="index-list rca-list">${featuredCases}</ul>
   <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기</a></p>
 </section>
+<section class="home-section">
+  <div class="section-kicker"><h2>Operations Toolkit · 운영 자동화</h2></div>
+  <p class="section-lead">운영하다 같은 확인을 반복하게 되면 다음부터는 사람이 다시 하지 않도록 도구로 만들었습니다.</p>
+  <ul class="index-list tool-list">${homeTools}</ul>
+  <p class="more"><a href="${url('tools/')}">운영 도구 전체 보기 →</a></p>
+</section>
 <section class="home-section resume-snapshot">
   <div class="section-kicker"><h2>경력 요약 / Experience</h2></div>
   ${field('Profile / 소개', para(site.resume.summary))}
@@ -410,11 +427,6 @@ ${readingGuide}
   <div class="section-kicker"><h2>Practices · 운영·검증</h2></div>
   <ul class="index-list">${practices.map((p) => `<li><a href="${url('practices/#' + p.slug)}"><span class="idx-cat">${esc(p.label)}</span><span class="idx-title">${esc(p.title)}</span></a></li>`).join('')}</ul>
   <p class="more"><a href="${url('practices/')}">Practices 전체 보기</a></p>
-</section>
-<section class="home-section">
-  <div class="section-kicker"><h2>Tools · 자동화</h2></div>
-  <ul class="index-list">${tools.map((t) => `<li><a href="${url('tools/#' + t.slug)}"><span class="idx-cat">${esc(t.category)}</span><span class="idx-title">${esc(t.name)}</span><span class="idx-sum">${esc(t.problem)}</span></a></li>`).join('')}</ul>
-  <p class="more"><a href="${url('tools/')}">Tools 전체 보기</a></p>
 </section>
 <section class="home-section">
   <div class="section-kicker"><h2>Education · Certification · Contact</h2></div>
@@ -510,7 +522,7 @@ ${field('Problem', bullets(p.problem))}
 ${field('Constraints', bullets(p.constraints))}
 ${field('My role', bullets(p.role))}
 ${field('Architecture', archField(p.architecture))}
-${field('Engineering decisions', notes(p.decisions))}
+${field('My decisions / 내가 판단한 부분', notes(p.decisions))}
 ${field('Implementation', bullets(p.implementation))}
 ${field('Validation', bullets(p.validation))}
 ${field('Outcome', bullets(p.outcome))}
@@ -606,30 +618,62 @@ ${items}`,
   );
 }
 
-// Tools
+// Operations Toolkit
+// Featured tools render as full cards; everything else collapses into a
+// compact utilities table. Both come from the same content/tools/*.json set.
 {
-  const items = tools
+  const codeBlock = (label, body) =>
+    body ? `<div class="tool-code"><p class="tool-code-label">${esc(label)}</p><pre class="code"><code>${esc(body)}</code></pre></div>` : '';
+
+  const featured = tools.filter((t) => t.featured !== false);
+  const utilities = tools.filter((t) => t.featured === false);
+
+  const cards = featured
     .map(
       (t) => `
-<article class="entry" id="${esc(t.slug)}">
-  <p class="eyebrow">${esc(t.category)} · ${esc(t.language)}</p>
-  <h2>${esc(t.name)}</h2>
-  <h3>Problem</h3>${para(t.problem)}
-  <h3>Why I built it</h3>${para(t.purpose)}
-  <h3>Usage</h3><pre class="code">${esc(t.usage)}</pre>
-  <h3>Example output</h3><pre class="code">${esc(t.example)}</pre>
-  <h3>Safety considerations</h3>${bullets(t.safety)}
-  ${evidenceLinks(t.evidence_links)}${t.repository ? `<p class="more"><a href="https://github.com/${esc(site.githubUsername)}/${esc(t.repository.replace('CHANGE_ME', site.githubUsername))}">Repository</a></p>` : ''}
+<article class="tool-card" id="${esc(t.slug)}">
+  <header class="tool-head">
+    <p class="eyebrow">${esc(t.category)}${t.language ? ` · ${esc(t.language)}` : ''}${t.version ? ` · ${esc(t.version)}` : ''}</p>
+    <h2>${esc(t.name)}${t.titleKo ? ` <span class="tool-title-ko">${esc(t.titleKo)}</span>` : ''}</h2>
+    ${t.sourceStatus ? `<p class="tool-source-status">${esc(t.sourceStatus)}</p>` : ''}
+  </header>
+  ${para(t.problem)}
+  ${t.whatItDoes ? `<h3>What it does / 하는 일</h3>${bullets(t.whatItDoes)}` : ''}
+  ${codeBlock('Usage / 사용 예', t.usage)}
+  ${codeBlock('Output / 출력 예', t.output)}
+  ${t.safety ? `<h3>Safety / 운영 안전장치</h3>${bullets(t.safety)}` : ''}
+  ${t.evidence_links ? `<h3>Source / Evidence</h3>${evidenceLinks(t.evidence_links)}` : ''}
+  ${t.related_project && projects.find((p) => p.slug === t.related_project)
+    ? `<p class="more"><a href="${url('projects/' + t.related_project + '/')}">관련 프로젝트 보기</a></p>`
+    : ''}
 </article>`
     )
     .join('');
 
+  const utilityRows = utilities
+    .map(
+      (u) => `<tr id="${esc(u.slug)}">
+  <td class="util-name">${esc(u.name)}<span class="util-name-ko">${esc(u.titleKo || '')}</span></td>
+  <td class="util-note">${inline(u.note || '')}${u.command ? `<pre class="code util-code"><code>${esc(u.command)}</code></pre>` : ''}</td>
+</tr>`
+    )
+    .join('');
+
+  const utilitySection = utilities.length
+    ? `<section class="home-section utilities">
+  <div class="section-kicker"><h2>More Utilities / 그 밖의 것들</h2></div>
+  <p class="section-lead">도구라고 하기엔 작지만 같은 상황이 오면 다시 꺼내 쓰는 명령들입니다.</p>
+  <div class="table-wrap"><table class="util-table"><tbody>${utilityRows}</tbody></table></div>
+</section>`
+    : '';
+
   page({
     path: 'tools/',
-    title: 'Tools / 자동화',
-    description: '운영 중 만든 점검·자동화 스크립트',
-    main: `<header class="page-head"><h1>Tools / 자동화</h1><p>운영하면서 같은 확인을 세 번 이상 반복하게 되면 스크립트로 만들었습니다. 실제 운영 스크립트에서 자격증명과 내부 식별정보를 제거한 공개본입니다.</p></header>
-${items}`,
+    title: 'Operations Toolkit / 운영 자동화',
+    description: '운영 중 반복되던 확인·전환·복구 작업을 묶은 실제 스크립트와 절차',
+    main: `<header class="page-head"><h1>Operations Toolkit / 운영 자동화</h1><p>운영하다 같은 확인을 반복하게 되면 다음부터는 사람이 다시 하지 않도록 도구로 만들었습니다. 아래는 실제로 쓰던 것들이고, 공개본에서는 내부 경로·클러스터 이름·IP만 지웠습니다.</p></header>
+<div class="tool-cards">${cards}</div>
+${utilitySection}`,
   });
 }
 
@@ -670,7 +714,10 @@ ${items}`,
       let title, body, lede;
       if (isMarkdown) {
         title = source.match(/^#\s+(.+)$/m)?.[1] || fileName.replace(/\.md$/i, '');
-        body = `<article class="markdown-body">${markdownToHtml(source)}</article>`;
+        // The document's own H1 becomes the page <h1> in the header above, so
+        // drop it from the body — otherwise every evidence page ships two H1s.
+        const withoutTitle = source.replace(/^#\s+.+$(\r?\n)?/m, '');
+        body = `<article class="markdown-body">${markdownToHtml(withoutTitle)}</article>`;
         lede = 'Sanitized technical evidence connected to the portfolio project.';
       } else {
         title = fileName;

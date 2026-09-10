@@ -1,0 +1,32 @@
+{
+  "slug": "dhcp-ip-conflict-check",
+  "order": 4,
+  "featured": true,
+  "name": "DHCP / IP Conflict Check",
+  "titleKo": "노드 IP 충돌 점검",
+  "category": "Network Operations",
+  "language": "Bash",
+  "stage": "production",
+  "sourceStatus": "실제 운영 절차 · 공개본은 IP 치환",
+  "problem": "노드 롤링 업데이트가 DHCP lease 부족으로 막혔습니다. lease 파일에는 `free`로 보이는 IP가 있었지만, lease가 만료됐다고 그 주소를 아무도 안 쓰는 것은 아니어서 바로 회수할 수 없었습니다.",
+  "whatItDoes": [
+    "`dhcpd.leases`에서 active binding 수를 세어 pool이 실제로 얼마나 찼는지 확인",
+    "lease 파일을 active / free로 나누되 free 목록은 후보로만 취급",
+    "후보 IP에 `ping`과 `arping`을 둘 다 걸어, ICMP를 막아둔 장비도 걸러냄",
+    "Kubernetes Node의 InternalIP와 대조해 클러스터가 쓰는 주소인지 구분",
+    "같은 IP에 MAC이 둘 이상 응답하면 회수하지 않고 스위치 MAC table 역추적으로 넘김"
+  ],
+  "usage": "# active binding 수\nawk '/binding state active/ {count++} END {print count}' /var/lib/dhcpd/dhcpd.leases\n\n# 후보 대역에서 실제로 응답 없는 주소만 출력\nfor i in $(seq 10 30); do\n  ip=192.0.2.$i\n  ping -c1 -W1 \"$ip\" >/dev/null 2>&1 && continue\n  arping -I <interface> -c 2 -w 2 \"$ip\" >/dev/null 2>&1 && continue\n  echo \"$ip AVAILABLE\"\ndone",
+  "output": "192.0.2.14 AVAILABLE\n192.0.2.19 AVAILABLE\n192.0.2.23 AVAILABLE\n\n# lease는 free인데 ARP 응답이 오는 주소는 출력되지 않습니다.",
+  "safety": [
+    "작업 전에 `dhcpd.leases`를 먼저 백업합니다.",
+    "lease 상태만으로 회수하지 않습니다. ARP 무응답과 Node IP 미사용이 함께 확인된 주소만 후보로 둡니다.",
+    "MAC이 여러 개 응답하면 IP 충돌로 보고 재사용하지 않습니다. proxy ARP 가능성이 있어 ARP 결과만으로 확정하지도 않습니다."
+  ],
+  "evidence_links": [
+    {
+      "label": "점검 절차와 판정 표",
+      "path": "evidence/07-operations-toolkit/docs/dhcp-ip-conflict-check.md"
+    }
+  ]
+}

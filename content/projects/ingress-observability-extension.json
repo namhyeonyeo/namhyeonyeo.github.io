@@ -4,13 +4,13 @@
   "title": "Kubernetes Ingress Observability / 인그레스 관측성 확장",
   "period": "2025.07 – 2025.08",
   "type": "PRODUCTION-ORIENTED ENGINEERING",
-  "summary": "기본 Prometheus 구성에서 직접 보이지 않던 Contour / Envoy 및 HTTPProxy FQDN 정보를 custom scrape와 exporter로 관측 가능하게 만든 작업입니다.",
+  "summary": "도메인에 문제가 생기면 어떤 HTTPProxy가 그 FQDN을 받고 있는지부터 찾아야 했는데, Prometheus에는 그 연결을 보여주는 지표가 없었습니다. Contour/Envoy 지표를 추가로 긁고, HTTPProxy CR을 직접 metric으로 바꿔 넣었습니다.",
   "context": [
-    "VKS 패키지 기반 Prometheus를 사용하면서 기본 설정을 훼손하지 않고 Ingress 계층의 지표를 추가로 수집할 필요가 있었습니다."
+    "Prometheus가 VKS 패키지로 설치돼 있어서 설정 파일을 직접 고치면 패키지 업데이트 때 되돌아갑니다. 기존 구성을 건드리지 않고 지표만 늘릴 방법이 필요했습니다."
   ],
   "problem": [
-    "Contour / Envoy metric endpoint가 기본 Prometheus target에 포함되지 않았습니다.",
-    "HTTPProxy의 FQDN과 리소스 상태를 도메인 단위로 직접 질의할 metric이 없었습니다."
+    "Contour와 Envoy의 metric endpoint가 기본 scrape 대상에 없었습니다.",
+    "HTTPProxy의 FQDN과 상태는 API에만 있고 Prometheus에서 질의할 수 있는 형태가 아니었습니다."
   ],
   "constraints": [
     "패키지 관리형 Prometheus의 owner/reference 제약",
@@ -29,20 +29,28 @@
       "caption": "HTTPProxy CRD 상태를 CronJob이 주기적으로 읽어 Pushgateway로 밀어넣고, Prometheus가 scrape해 PromQL로 조회 가능하게 만드는 흐름입니다."
     },
     "notes": [
-      "실제 exporter 원본은 아직 공개 Evidence로 수집 중입니다."
+      "원본 수집 스크립트는 내부 endpoint가 섞여 있어 올리지 않았고, 같은 흐름을 재현 예제로 공개했습니다."
     ]
   },
   "decisions": [
     {
-      "label": "기존 Prometheus를 직접 수정하지 않음",
-      "text": "패키지 관리형 구성의 lifecycle을 깨지 않도록 추가 scrape / Pushgateway 경로로 확장했습니다."
+      "label": "패키지가 관리하는 설정 대신 옆에 붙인다",
+      "text": "Prometheus 구성을 직접 수정하면 패키지 lifecycle과 충돌합니다. additional scrape config Secret과 Pushgateway 경로로 데이터를 더하는 쪽을 골랐습니다."
+    },
+    {
+      "label": "없는 데이터는 만들어서 넣는다",
+      "text": "HTTPProxy와 FQDN의 관계는 어느 exporter도 주지 않았습니다. CR을 읽어 label만 담긴 metric으로 바꾸면 Prometheus 질의 대상이 된다고 보고 CronJob으로 밀어넣었습니다."
+    },
+    {
+      "label": "상주 exporter 대신 CronJob",
+      "text": "이 정보는 초 단위로 바뀌지 않습니다. 항상 떠 있는 Pod를 하나 더 운영하는 것보다 주기 실행이 관리 부담이 적었습니다."
     }
   ],
   "implementation": [
     "Contour / Envoy metrics port 확인",
     "Secret 기반 additional scrape job 구성",
-    "Pushgateway 설치 및 scrape path 검증",
-    "HTTPProxy를 contour_httpproxy_info 형태의 custom metric으로 변환"
+    "Pushgateway 설치 및 scrape 경로 확인",
+    "HTTPProxy CR을 읽어 `contour_httpproxy_info` metric으로 변환하는 CronJob 작성"
   ],
   "validation": [
     "Prometheus Targets에서 scrape 상태 확인",
@@ -50,8 +58,9 @@
     "contour_httpproxy_info를 FQDN / Namespace / resource label 기준으로 PromQL 검증"
   ],
   "outcome": [
-    "Ingress component와 HTTPProxy FQDN 상태를 Prometheus에서 조회할 수 있는 관측 경로를 만들었습니다.",
-    "도메인 단위 문제 추적과 dashboard 확장을 위한 데이터를 제공했습니다."
+    "`contour_httpproxy_info{fqdn=\"...\"}` 로 어떤 HTTPProxy가 그 도메인을 받는지 Prometheus에서 바로 확인합니다.",
+    "상태가 valid가 아닌 HTTPProxy를 도메인과 함께 한 번에 거를 수 있게 됐습니다.",
+    "수집 스크립트는 Operations Toolkit에 재현 예제로 정리했습니다."
   ],
   "technologies": [
     "Kubernetes",
@@ -67,5 +76,10 @@
   ],
   "related_cases": [],
   "related_repository": "",
-  "evidence_links": []
+  "evidence_links": [
+    {
+      "label": "수집 · RBAC · PromQL 재현 예제",
+      "path": "evidence/07-operations-toolkit/docs/httpproxy-fqdn-exporter.md"
+    }
+  ]
 }

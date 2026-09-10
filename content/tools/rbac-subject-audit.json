@@ -1,0 +1,10 @@
+{
+  "slug": "rbac-subject-audit",
+  "order": 11,
+  "featured": false,
+  "name": "RBAC Subject Audit",
+  "titleKo": "공용 ClusterRoleBinding 주체 점검",
+  "category": "RBAC",
+  "note": "공용 read 권한 바인딩에 Namespace 주체가 몇 개나 붙어 있는지 세어, 권한이 조용히 늘어나는 것을 확인합니다.",
+  "command": "kubectl get clusterrolebinding <binding-name> -o json \\\n  | jq '[.subjects[]? | select(.namespace != null) | .namespace] | length'"
+}

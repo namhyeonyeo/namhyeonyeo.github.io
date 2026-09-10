@@ -4,7 +4,8 @@
       "heading": "What I do",
       "body": [
         "온프레미스 인프라에서 Kubernetes 플랫폼을 구축하는 것으로 커리어를 시작했습니다. 클러스터 자체뿐 아니라 Ingress, Load Balancer, Storage, Registry, RBAC, CI/CD까지 연결해야 실제 서비스 플랫폼이 된다는 것을 여러 프로젝트에서 경험했습니다.",
-        "클라우드를 쓸 수 없는 환경이 전제입니다. 환경끼리 연결되지 않으니 레지스트리도 GitOps 경로도 점프박스도 환경 수만큼 따로 존재합니다. 이 구조에서 25개 클러스터와 확인된 워커 66대+의 Ingress·Egress·Storage·Registry를 하나의 일관된 플랫폼으로 유지하고, 반복되는 운영 작업을 줄이고, 장애가 나면 Scheduler·CSI·CNI·Autoscaler 로그를 같은 타임라인에 놓고 원인을 찾습니다."
+        "클라우드를 쓸 수 없는 환경이 전제입니다. 환경끼리 연결되지 않으니 레지스트리도 GitOps 경로도 점프박스도 환경 수만큼 따로 존재합니다. 이 구조에서 25개 클러스터와 확인된 워커 66대+의 Ingress·Egress·Storage·Registry를 하나의 일관된 플랫폼으로 유지하고, 반복되는 운영 작업을 줄이고, 장애가 나면 Scheduler·CSI·CNI·Autoscaler 로그를 같은 타임라인에 놓고 원인을 찾습니다.",
+        "같은 확인을 세 번쯤 반복하게 되면 스크립트로 옮깁니다. 노드 접속과 Egress 판정을 묶은 CLI, 스토리지 전환 전에 롤백 자료를 받아두는 스크립트, DHCP lease와 ARP를 대조하는 점검 절차가 그렇게 남았습니다."
       ]
     },
     {
@@ -16,13 +17,14 @@
     {
       "heading": "Engineering focus",
       "body": [
-        "Kubernetes Networking, Reliability, Observability, GitOps, Infrastructure Automation을 핵심 축으로 보고 있습니다. 문제를 볼 때는 애플리케이션 계층만 보지 않고 DNS → VIP → Load Balancer → Service → Pod 또는 Pod → CNI → Node → SNAT → Firewall 같은 실제 트래픽·의존성 경로를 따라가는 방식을 선호합니다."
+        "문제를 볼 때 애플리케이션 계층에서 멈추지 않으려고 합니다. 들어오는 트래픽은 DNS → VIP → Load Balancer → Service → Pod, 나가는 트래픽은 Pod → CNI → Node → SNAT → Firewall 순서로 따라가면 어느 구간에서 끊겼는지가 보입니다.",
+        "Autoscaler가 예상치 못한 시점에 노드를 늘렸을 때도 CA 로그만 보지 않고 Pod event와 PVC binding 시각을 같은 타임라인에 놓고 나서야 실제 트리거를 찾았습니다. 그 뒤로는 RCA 절차에 이 비교 단계를 넣어두고 씁니다."
       ]
     },
     {
       "heading": "Next",
       "body": [
-        "현재 경험을 SRE / Platform Engineering으로 확장하면서 Terraform·Ansible 기반 IaC와 Kubernetes 기반 AI Infrastructure / GPU workload 영역을 별도 Lab으로 학습하고 있습니다. Production에서 하지 않은 내용은 포트폴리오에서도 Self Study로 구분합니다."
+        "지금은 Platform Engineering과 SRE 쪽으로 범위를 넓히는 중입니다. Terraform과 Ansible, 그리고 Kubernetes 위의 GPU 워크로드는 아직 운영에서 다뤄본 영역이 아니라 따로 공부하고 있고, 포트폴리오에서도 Self Study로 표시했습니다."
       ]
     }
   ]
