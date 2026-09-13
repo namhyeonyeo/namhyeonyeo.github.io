@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 470" role="img"
+     aria-labelledby="ag-title ag-desc" class="dg">
+  <title id="ag-title">Admission 가드레일 구성</title>
+  <desc id="ag-desc">Workload 생성 요청이 kube-apiserver의 admission 단계에서 ValidatingAdmissionPolicy의 CEL 식으로 검증되고, Binding의 validationActions에 따라 Deny 또는 Warn으로 처리됩니다. Namespace에 policy-exclude=true 라벨이 있으면 정책 대상에서 제외됩니다. ResourceQuota는 별도의 제어 계층으로, admission 검증을 통과한 요청도 Namespace 총량을 넘으면 거부될 수 있습니다. 운영 환경에는 Mutating Webhook을 적용하지 않았습니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-r { fill: var(--dg-rca-fill, #FBECEB); stroke: var(--dg-rca, #C2413B); stroke-width: 1.5; }
+    .dg-box-off { fill: none; stroke: var(--dg-legacy, #94A3B8); stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-line-a { stroke: var(--dg-accent, #0F766E); stroke-width: 2; fill: none; }
+    .dg-edge { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; }
+    .dg-deny { fill: var(--dg-rca, #C2413B); font-size: 12.5px; font-weight: 600; }
+    .dg-off-t { fill: var(--dg-legacy, #94A3B8); font-size: 12px; font-weight: 600; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="ag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+    <marker id="ag-arrow-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-accent, #0F766E)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- request -->
+    <rect x="24" y="80" width="164" height="72" rx="8" class="dg-box"/>
+    <text x="44" y="108" class="dg-label">Workload 생성 요청</text>
+    <text x="44" y="130" class="dg-mono">Deployment / STS / DS</text>
+
+    <path d="M 188 116 L 226 116" class="dg-line" marker-end="url(#ag-arrow)"/>
+
+    <!-- admission layer -->
+    <text x="228" y="60" class="dg-zone-t">ADMISSION — 매니페스트가 정책을 만족하는가</text>
+    <rect x="228" y="72" width="218" height="88" rx="8" class="dg-box-a"/>
+    <text x="248" y="100" class="dg-label">ValidatingAdmissionPolicy</text>
+    <text x="248" y="122" class="dg-mono">CEL 식으로 검증</text>
+    <text x="248" y="142" class="dg-mono">requests / limits 누락 확인</text>
+
+    <!-- exception -->
+    <rect x="228" y="196" width="218" height="76" rx="8" class="dg-box-2"/>
+    <text x="248" y="222" class="dg-label">Namespace 예외</text>
+    <text x="248" y="243" class="dg-mono">policy-exclude=true</text>
+    <text x="248" y="262" class="dg-mono">라벨이 있으면 대상에서 제외</text>
+    <path d="M 337 196 L 337 164" class="dg-line" marker-end="url(#ag-arrow)"/>
+
+    <!-- actions -->
+    <path d="M 446 116 L 484 116" class="dg-line-a" marker-end="url(#ag-arrow-a)"/>
+    <rect x="486" y="72" width="150" height="40" rx="8" class="dg-box-r"/>
+    <text x="506" y="97" class="dg-deny">Deny</text>
+    <rect x="486" y="120" width="150" height="40" rx="8" class="dg-box-2"/>
+    <text x="506" y="145" class="dg-label">Warn</text>
+    <text x="486" y="180" class="dg-mono">Binding의 validationActions</text>
+
+    <!-- quota layer -->
+    <text x="676" y="60" class="dg-zone-t">QUOTA — 총량을 넘지 않는가</text>
+    <rect x="676" y="72" width="180" height="88" rx="8" class="dg-box"/>
+    <text x="696" y="100" class="dg-label">ResourceQuota</text>
+    <text x="696" y="122" class="dg-mono">Namespace 사용 총량</text>
+    <text x="696" y="142" class="dg-mono">별도 제어 계층</text>
+    <path d="M 636 92 L 670 92" class="dg-line" marker-end="url(#ag-arrow)"/>
+    <text x="612" y="200" class="dg-edge">통과해도</text>
+
+    <!-- separation note -->
+    <rect x="486" y="196" width="370" height="76" rx="8" class="dg-box-2"/>
+    <text x="506" y="222" class="dg-label">두 계층은 다른 것을 본다</text>
+    <text x="506" y="244" class="dg-mono">--dry-run=server 통과 ≠ 실제 생성 성공</text>
+    <text x="506" y="263" class="dg-mono">Quota 초과면 생성 시점에 거부</text>
+
+    <!-- webhook not used -->
+    <rect x="24" y="312" width="404" height="72" rx="8" class="dg-box-off"/>
+    <text x="44" y="340" class="dg-off-t">Mutating Admission Webhook — 운영 미적용</text>
+    <text x="44" y="364" class="dg-mono">테스트·설계 범위에서만 검토</text>
+
+    <rect x="452" y="312" width="404" height="72" rx="8" class="dg-box-a"/>
+    <text x="472" y="340" class="dg-label">운영에 적용한 것</text>
+    <text x="472" y="364" class="dg-mono">ValidatingAdmissionPolicy + CEL</text>
+
+    <text x="24" y="424" class="dg-note">예외를 CEL 안에 Namespace 이름으로 박지 않고 라벨로 뒀습니다. 지금 예외인 대상을 조회하고 회수하기 쉬워야 했습니다.</text>
+  </g>
+</svg>

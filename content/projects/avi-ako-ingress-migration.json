@@ -7,6 +7,7 @@
   "summary": "업무망과 통제망을 다른 Ingress 경로로 받아야 했는데, Contour/HTTPProxy 구조에서는 네트워크를 나누는 지점이 마땅치 않았습니다. 라우팅 정의를 AKO가 AVI Virtual Service로 옮기는 구조로 바꾸고 환경별로 순차 전환했습니다.",
   "context": [
     "Ingress는 Contour/Envoy가 처리하고 그 앞에 AVI Load Balancer가 있는 구조였습니다. 업무 성격상 같은 클러스터의 서비스라도 들어오는 네트워크 영역이 달라야 했습니다.",
+    "바꿔야 했던 이유는 기능이 부족해서가 아니라 분기점이 없어서였습니다. 네트워크를 고르는 판단을 넣을 자리가 Envoy 앞단에 없었습니다.",
     "전환 대상이 이미 서비스 중인 라우팅이라 HTTPProxy가 하던 일을 native Ingress와 AVI CR로 하나씩 옮겨야 했고, DNS를 언제 넘길지와 되돌릴 경로를 같이 정해야 했습니다."
   ],
   "problem": [
@@ -26,16 +27,18 @@
   "architecture": {
     "asIs": {
       "label": "AS-IS",
-      "mermaid": "flowchart TB\n  subgraph CP[\"Control Plane\"]\n    HP[\"HTTPProxy / Ingress\"] --> CT[\"Contour Controller\"]\n    CT --> ENVCFG[\"Envoy Config\"]\n  end\n  subgraph DP[\"Runtime Data Plane\"]\n    CLI[\"Client\"] --> DNS[\"DNS\"]\n    DNS --> VIP[\"AVI VIP / Service Engine\"]\n    VIP --> ENV[\"Envoy\"]\n    ENV --> SVC[\"Kubernetes Service\"]\n    SVC --> POD[\"Pod\"]\n  end\n  ENVCFG -.configures.-> ENV",
-      "caption": "Contour/HTTPProxy가 Envoy 설정을 생성하고, Envoy가 AVI VIP 뒤에서 실제 트래픽을 처리하는 구조였습니다."
+      "diagram": "assets/diagrams/projects/ingress-as-is.svg",
+      "caption": "Contour가 HTTPProxy를 읽어 Envoy 설정을 만들고, 트래픽은 AVI VIP를 지나 Envoy에서 L7 라우팅됐습니다.",
+      "alt": "HTTPProxy를 Contour가 읽어 Envoy 설정을 만들고, 클라이언트 요청이 DNS와 AVI VIP를 거쳐 Envoy, Kubernetes Service, Pod로 흐르는 AS-IS 구조"
     },
     "toBe": {
       "label": "TO-BE",
-      "mermaid": "flowchart TB\n  subgraph CP[\"Control Plane\"]\n    ING[\"Ingress / AviInfraSetting / IngressClass\"] --> AKO[\"AKO\"]\n    AKO --> AVICTRL[\"AVI Controller\"]\n    AVICTRL --> VS[\"Virtual Service Config\"]\n  end\n  subgraph DP[\"Runtime Data Plane\"]\n    CLI[\"Client\"] --> DNS[\"DNS\"]\n    DNS --> VIP[\"AVI VIP / Service Engine\"]\n    VIP --> SVC[\"Kubernetes Service\"]\n    SVC --> POD[\"Pod\"]\n  end\n  VS -.configures.-> VIP",
-      "caption": "AKO가 Ingress/AviInfraSetting을 AVI Controller의 Virtual Service 설정으로 변환하고, AVI VIP가 Envoy 없이 직접 Service까지 트래픽을 전달합니다."
+      "diagram": "assets/diagrams/projects/ingress-to-be.svg",
+      "caption": "AKO가 Ingress와 AviInfraSetting을 AVI Virtual Service 설정으로 옮기고, 네트워크 영역별 VIP가 Service로 직접 전달합니다.",
+      "alt": "Ingress와 IngressClass, AviInfraSetting을 AKO가 AVI Controller의 Virtual Service로 변환하고, 네트워크 영역별 VIP가 Kubernetes Service와 Pod로 전달하는 TO-BE 구조"
     },
     "notes": [
-      "공개 포트폴리오에서는 고객 IP·FQDN·실제 VIP를 제거하고 control plane 설정 경로와 runtime data plane 트래픽 경로를 분리해 표기했습니다."
+      "공개본에서는 고객 IP·FQDN·실제 VIP를 지우고 control plane 설정 경로와 data plane 트래픽 경로를 나눠 표기했습니다."
     ]
   },
   "decisions": [

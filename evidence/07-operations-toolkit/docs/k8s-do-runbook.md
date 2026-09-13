@@ -1,6 +1,6 @@
-# cluster-ssh v3 — 노드 작업 CLI 사용 기록
+# k8s-do v3.2 — 노드 작업 CLI 사용 기록
 
-**Evidence label:** SANITIZED OPERATIONAL TOOLING · v3.0.0
+**Evidence label:** SANITIZED OPERATIONAL TOOLING · v3.2.0
 
 노드에 붙어서 뭔가 확인할 때마다 순서가 같았습니다. 어느 클러스터인지 고르고, kubeconfig를 찾고, `kubectl get nodes -o wide`로 Internal IP를 보고, 그 IP를 복사해서 ssh를 치고, 키 경로를 기억해내는 순서입니다. 환경이 일곱 개라 클러스터마다 kubeconfig와 private key가 따로 있어서 이 과정이 매번 반복됐습니다.
 
@@ -9,34 +9,66 @@
 ## 명령
 
 ```text
-cluster-ssh list
-cluster-ssh nodes <cluster>
-cluster-ssh <cluster>
-cluster-ssh <cluster> <node-name|node-ip|index>
-cluster-ssh check <cluster> <node-name|node-ip|index>
-cluster-ssh exec <cluster> <node-name|node-ip|index> -- '<remote command>'
-cluster-ssh doctor <cluster> <node-name|node-ip|index> [--output <file>]
-cluster-ssh egress-check <cluster> <node-name|node-ip|index> \
+k8s-do list
+k8s-do nodes <cluster>
+k8s-do <cluster>
+k8s-do <cluster> <node-name|node-ip|index>
+k8s-do check <cluster> <node-name|node-ip|index>
+k8s-do exec <cluster> <node-name|node-ip|index> -- '<remote command>'
+k8s-do doctor <cluster> <node-name|node-ip|index> [--output <file>]
+k8s-do egress-check <cluster> <node-name|node-ip|index> \
     --egress-ip <ip> --dst <ip> --port <port> \
     [--namespace <ns>] [--pod-prefix <prefix>] [--pod <name>] \
     [--container <name>] [--iface <interface>] [--timeout <seconds>] \
     [--output <file>]
-cluster-ssh refresh [cluster]
-cluster-ssh version
+k8s-do refresh [cluster]
+k8s-do version
 ```
 
-노드는 이름, Internal IP, 목록 index 중 아무거나로 지정할 수 있습니다. 클러스터 이름만 주면 노드 목록에서 골라서 접속합니다.
+노드는 이름, InternalIP, 목록 index 중 아무거나로 지정할 수 있습니다. 클러스터 이름만 주면 노드 목록을 띄우고 거기서 골라 접속합니다.
 
 ## 클러스터를 찾는 방법
 
 `CLUSTER_DISCOVERY_MODE`가 `static`, `supervisor`, `hybrid` 중 하나입니다.
 
-- `static` — config에 선언한 클러스터의 kubeconfig / private key 경로를 사용합니다.
-- `supervisor` — Supervisor kubeconfig로 `clusters.cluster.x-k8s.io`를 조회하고, 게스트 클러스터 kubeconfig는 `<cluster>-kubeconfig` Secret의 `value` 키에서, SSH key는 `<cluster>-ssh` Secret의 `ssh-privatekey` 키에서 꺼냅니다.
+- `static` — kubeconfig 디렉터리에 있는 파일을 그대로 클러스터 목록으로 씁니다. 클러스터 이름은 파일 이름에서 만들고 `.conf`, `.kubeconfig`, `.yaml`, `.yml` 확장자는 떼어냅니다. private key는 같은 이름으로 확장자 없음 / `.pem` / `.key` 순으로 찾습니다. 클러스터를 추가할 때 설정 파일을 고치지 않고 kubeconfig만 넣으면 되도록 한 부분입니다.
+- `supervisor` — Supervisor Kubernetes API를 조회하고, 워크로드 클러스터의 kubeconfig와 SSH private key를 Kubernetes Secret에서 가져옵니다. 클러스터 이름은 `namespace/cluster-name` 형식을 씁니다.
+- `hybrid` — 위 두 방식을 같이 씁니다.
 
-노드 목록은 20초, 클러스터 목록은 30초, kubeconfig 같은 asset은 300초 동안 캐시합니다. 캐시를 지우려면 `refresh`를 씁니다.
+공개본에서는 kubeconfig / private key 디렉터리를 실제 경로 대신 `Kubeconfig Directory`, `Private Key Directory`로만 적습니다.
 
-Bash completion은 `__complete clusters`, `__complete nodes <cluster>` 를 통해 클러스터 이름, 노드 이름, 노드 IP를 채웁니다.
+## 노드를 고르는 방법
+
+`nodes`는 Kubernetes API에서 노드 이름, InternalIP, Ready 상태, `spec.unschedulable`, kubelet 버전을 읽어 표로 보여줍니다.
+
+```text
+INDEX  NODE              INTERNAL-IP   STATUS  SCHEDULING  VERSION
+1      worker-node-01    192.0.2.21    Ready   Enabled     v1.30.1
+2      worker-node-02    192.0.2.22    Ready   Enabled     v1.30.1
+```
+
+대상 노드를 주지 않으면 이 표를 띄운 뒤, `fzf`가 설치돼 있으면 fzf로, 없으면 INDEX / NODE / IP 입력으로 고릅니다. 고른 노드가 그 클러스터에 실제로 속하는지 확인한 다음 접속합니다.
+
+## Bash completion
+
+명령 이름, 클러스터 이름, 노드 대상, `doctor`/`egress-check` 옵션을 채웁니다.
+
+노드 completion은 이름만 삽입하되, Bash가 후보를 나열할 때는 읽을 수 있는 표를 같이 출력합니다.
+
+```text
+$ k8s-do prod-workload <TAB><TAB>
+NODE              INTERNAL-IP   STATUS  SCHEDULING  VERSION
+worker-node-01    192.0.2.21    Ready   Enabled     v1.30.1
+worker-node-02    192.0.2.22    Ready   Enabled     v1.30.1
+```
+
+`Tab을 눌렀을 때 Node 이름과 IP를 같은 줄에서 보고 싶다`는 요구에서 나온 동작입니다. IP는 별도 후보로 삽입되지 않지만 직접 입력하면 그대로 대상이 됩니다.
+
+## 캐시
+
+노드 목록은 20초, 클러스터 목록은 30초, kubeconfig 같은 asset은 300초 캐시합니다. `refresh [cluster]`로 전체 또는 특정 클러스터 캐시를 비웁니다.
+
+Kubernetes API 조회가 실패했는데 오래된 캐시가 남아 있으면, 경고를 찍고 그 캐시를 그대로 씁니다. 장애를 보러 들어가는 도구가 API 응답이 없다고 먼저 멈추면 곤란해서 둔 동작입니다.
 
 ## SSH 옵션
 
@@ -50,7 +82,34 @@ Bash completion은 `__complete clusters`, `__complete nodes <cluster>` 를 통�
 -o ServerAliveCountMax=2
 ```
 
-비밀번호 인증을 끄고 지정한 키만 쓰도록 고정했습니다. known_hosts는 사용자 홈의 별도 state 경로를 씁니다.
+비밀번호 인증을 끄고 지정한 키만 쓰도록 고정했습니다. known_hosts는 k8s-do 전용 파일을 따로 씁니다.
+
+## doctor가 모으는 것
+
+노드가 이상할 때 Kubernetes 쪽 상태와 노드 OS 쪽 상태를 각각 다른 창에서 보고 있었습니다. 두 관점을 한 리포트로 모읍니다.
+
+Kubernetes 쪽:
+
+```text
+kubectl describe node <node>
+그 노드에 올라간 Pod 목록
+그 노드에 대한 Event
+```
+
+노드 OS 쪽(SSH):
+
+```text
+hostname -f / date -Is / uptime
+ip -br addr
+ip route
+ip -6 route
+ip neigh
+ss -s
+kubelet 등 주요 서비스 상태
+최근 kubelet warning 로그
+```
+
+결과는 로그 파일로 저장합니다. `--output`으로 경로를 지정할 수 있습니다.
 
 ## egress-check가 하는 일
 

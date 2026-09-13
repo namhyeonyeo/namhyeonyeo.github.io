@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" role="img"
+     aria-labelledby="ca-title ca-desc" class="dg">
+  <title id="ca-title">Cluster Autoscaler 예상치 못한 scale-out 타임라인</title>
+  <desc id="ca-desc">백업 작업이 시작되면서 여러 Pod와 PVC가 거의 동시에 생성됩니다. 한 PVC는 바인딩이 먼저 끝나고 다른 PVC는 Unbound로 남습니다. 처음에는 눈에 보이던 Unbound PVC Pod를 scale-out 원인으로 의심했지만, Pod event와 PVC 바인딩 시각과 Cluster Autoscaler 로그를 같은 타임라인에 놓고 보니 CA가 scale-up 판단의 근거로 삼은 Pod는 바인딩이 먼저 끝난 인접 Pod였습니다. 백업이 끝난 뒤 추가된 노드는 다시 scale-down됐습니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-box-r { fill: var(--dg-rca-fill, #FBECEB); stroke: var(--dg-rca, #C2413B); stroke-width: 1.5; }
+    .dg-lane { fill: var(--dg-text, #0F172A); font-size: 12.5px; font-weight: 600; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 13px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-axis { stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-lifeline { stroke: var(--dg-border, #CBD5E1); stroke-width: 1; stroke-dasharray: 4 4; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-line-r { stroke: var(--dg-rca, #C2413B); stroke-width: 2; fill: none; }
+    .dg-t-label { fill: var(--dg-muted, #64748B); font-size: 11px; font-weight: 600; letter-spacing: .06em; }
+    .dg-wrong { fill: var(--dg-muted, #64748B); font-size: 12px; }
+    .dg-right { fill: var(--dg-rca, #C2413B); font-size: 12.5px; font-weight: 600; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="ca-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+    <marker id="ca-arrow-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-rca, #C2413B)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- time axis -->
+    <text x="24" y="34" class="dg-t-label">TIME →</text>
+    <line x1="176" y1="44" x2="856" y2="44" class="dg-axis"/>
+    <text x="196" y="34" class="dg-t-label">t1 백업 시작</text>
+    <text x="368" y="34" class="dg-t-label">t2 PVC 바인딩</text>
+    <text x="546" y="34" class="dg-t-label">t3 CA 평가</text>
+    <text x="716" y="34" class="dg-t-label">t4 백업 종료</text>
+
+    <!-- lanes -->
+    <text x="24" y="86" class="dg-lane">Kasten backup</text>
+    <line x1="176" y1="94" x2="856" y2="94" class="dg-lifeline"/>
+    <rect x="188" y="66" width="150" height="46" rx="6" class="dg-box-2"/>
+    <text x="204" y="86" class="dg-mono">여러 backup Pod/PVC</text>
+    <text x="204" y="102" class="dg-mono">거의 동시 생성</text>
+    <rect x="700" y="66" width="140" height="46" rx="6" class="dg-box-2"/>
+    <text x="716" y="94" class="dg-mono">작업 종료</text>
+
+    <text x="24" y="160" class="dg-lane">PVC A</text>
+    <line x1="176" y1="168" x2="856" y2="168" class="dg-lifeline"/>
+    <rect x="356" y="142" width="160" height="46" rx="6" class="dg-box"/>
+    <text x="372" y="162" class="dg-mono">Unbound 로 남음</text>
+    <text x="372" y="178" class="dg-mono">Pod Pending</text>
+
+    <text x="24" y="234" class="dg-lane">PVC B (인접 Pod)</text>
+    <line x1="176" y1="242" x2="856" y2="242" class="dg-lifeline"/>
+    <rect x="356" y="216" width="160" height="46" rx="6" class="dg-box-r"/>
+    <text x="372" y="236" class="dg-mono">Bound 먼저 완료</text>
+    <text x="372" y="252" class="dg-mono">스케줄 대상이 됨</text>
+
+    <text x="24" y="308" class="dg-lane">Scheduler</text>
+    <line x1="176" y1="316" x2="856" y2="316" class="dg-lifeline"/>
+    <rect x="528" y="290" width="170" height="46" rx="6" class="dg-box"/>
+    <text x="544" y="310" class="dg-mono">unschedulable 판단</text>
+    <text x="544" y="326" class="dg-mono">자원 부족</text>
+
+    <text x="24" y="382" class="dg-lane">Cluster Autoscaler</text>
+    <line x1="176" y1="390" x2="856" y2="390" class="dg-lifeline"/>
+    <rect x="528" y="364" width="170" height="46" rx="6" class="dg-box-r"/>
+    <text x="544" y="384" class="dg-mono">evaluation loop</text>
+    <text x="544" y="400" class="dg-mono">scale-up 결정</text>
+    <rect x="716" y="364" width="124" height="46" rx="6" class="dg-box-a"/>
+    <text x="732" y="384" class="dg-mono">노드 추가분</text>
+    <text x="732" y="400" class="dg-mono">scale-down</text>
+
+    <!-- causal arrows -->
+    <path d="M 436 262 L 436 284 L 524 296" class="dg-line-r" marker-end="url(#ca-arrow-r)"/>
+    <path d="M 613 336 L 613 360" class="dg-line-r" marker-end="url(#ca-arrow-r)"/>
+    <path d="M 698 387 L 712 387" class="dg-line" marker-end="url(#ca-arrow)"/>
+
+    <!-- wrong vs right -->
+    <path d="M 436 188 L 436 206" class="dg-line" stroke-dasharray="4 4"/>
+    <line x1="430" y1="194" x2="442" y2="206" stroke="var(--dg-line, #94A3B8)" stroke-width="1.5"/>
+    <line x1="442" y1="194" x2="430" y2="206" stroke="var(--dg-line, #94A3B8)" stroke-width="1.5"/>
+
+    <rect x="24" y="440" width="404" height="90" rx="10" class="dg-box-2"/>
+    <text x="48" y="466" class="dg-label">처음 의심한 것</text>
+    <text x="48" y="490" class="dg-wrong">눈에 보이던 Unbound PVC Pod가</text>
+    <text x="48" y="508" class="dg-wrong">그대로 scale-out 원인일 것이다 → 아니었음</text>
+
+    <rect x="452" y="440" width="404" height="90" rx="10" class="dg-box-r"/>
+    <text x="476" y="466" class="dg-label">타임라인을 맞춰보고 확인한 것</text>
+    <text x="476" y="490" class="dg-right">CA가 근거로 삼은 Pod는 PVC 바인딩이</text>
+    <text x="476" y="508" class="dg-right">먼저 끝난 인접 Pod였다</text>
+  </g>
+</svg>

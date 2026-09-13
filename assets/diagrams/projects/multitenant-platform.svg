@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" role="img"
+     aria-labelledby="mt-title mt-desc" class="dg">
+  <title id="mt-title">망분리 환경 Kubernetes 플랫폼 구성</title>
+  <desc id="mt-desc">서로 통신하지 않는 7개 격리 네트워크 각각에 같은 구성을 반복했습니다. 환경마다 Supervisor 클러스터 1개 아래 CI/CD와 공통 컴포넌트를 담당하는 Shared 클러스터와 업무 애플리케이션을 담는 Workload 클러스터를 두고, Ingress와 LoadBalancer, Registry, Storage, Observability를 환경 안에서 각각 운영했습니다. 합계는 클러스터 25개, 확인된 워커 66대 이상입니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-zone { fill: none; stroke: var(--dg-border, #CBD5E1); stroke-width: 1; stroke-dasharray: 5 4; }
+    .dg-zone-a { fill: none; stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-zone-ta { fill: var(--dg-accent-text, #0B5651); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-x { stroke: var(--dg-legacy, #94A3B8); stroke-width: 1.5; fill: none; stroke-dasharray: 3 3; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+    .dg-count { fill: var(--dg-text, #0F172A); font-size: 13px; font-weight: 600; }
+  </style>
+  <defs>
+    <marker id="mt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- other zones (stacked hint) -->
+    <rect x="600" y="44" width="256" height="300" rx="10" class="dg-zone"/>
+    <text x="620" y="70" class="dg-zone-t">그 밖의 격리 네트워크 × 6</text>
+    <rect x="624" y="88" width="208" height="48" rx="8" class="dg-box-2"/>
+    <text x="644" y="118" class="dg-mono">동일한 구성을 환경마다 반복</text>
+    <rect x="624" y="148" width="208" height="48" rx="8" class="dg-box-2"/>
+    <text x="644" y="178" class="dg-mono">DMZ 운영 / 개발·스테이징 / DR</text>
+    <rect x="624" y="208" width="208" height="48" rx="8" class="dg-box-2"/>
+    <text x="644" y="238" class="dg-mono">내부 운영 / 개발 / 스테이징 / DR</text>
+    <rect x="624" y="268" width="208" height="48" rx="8" class="dg-box-2"/>
+    <text x="644" y="298" class="dg-mono">내부 샌드박스 (검증 전용)</text>
+
+    <!-- one zone in detail -->
+    <rect x="24" y="44" width="544" height="300" rx="10" class="dg-zone-a"/>
+    <text x="44" y="70" class="dg-zone-ta">격리 네트워크 1개 — 환경 간 통신 경로 없음</text>
+
+    <rect x="48" y="88" width="200" height="56" rx="8" class="dg-box-a"/>
+    <text x="68" y="112" class="dg-label">Supervisor Cluster</text>
+    <text x="68" y="132" class="dg-mono">환경당 1개</text>
+
+    <path d="M 148 144 L 148 168 L 120 168 L 120 190" class="dg-line" marker-end="url(#mt-arrow)"/>
+    <path d="M 148 168 L 356 168 L 356 190" class="dg-line" marker-end="url(#mt-arrow)"/>
+
+    <rect x="48" y="192" width="200" height="70" rx="8" class="dg-box"/>
+    <text x="68" y="216" class="dg-label">Shared Cluster</text>
+    <text x="68" y="236" class="dg-mono">CI/CD · 공통 컴포넌트</text>
+    <text x="68" y="254" class="dg-mono">워커 3대 (전 환경 동일)</text>
+
+    <rect x="284" y="192" width="200" height="70" rx="8" class="dg-box"/>
+    <text x="304" y="216" class="dg-label">Workload Cluster</text>
+    <text x="304" y="236" class="dg-mono">업무 애플리케이션</text>
+    <text x="304" y="254" class="dg-mono">워커 수는 환경별 상이</text>
+
+    <!-- platform capabilities -->
+    <rect x="48" y="278" width="436" height="50" rx="8" class="dg-box-2"/>
+    <text x="68" y="298" class="dg-label">환경 안에서 각각 운영한 것</text>
+    <text x="68" y="318" class="dg-mono">Ingress / LoadBalancer · Registry · Storage · Observability · 인증서</text>
+
+    <!-- no link between zones -->
+    <path d="M 568 194 L 596 194" class="dg-x"/>
+    <line x1="576" y1="186" x2="588" y2="202" stroke="var(--dg-legacy, #94A3B8)" stroke-width="1.5"/>
+    <line x1="588" y1="186" x2="576" y2="202" stroke="var(--dg-legacy, #94A3B8)" stroke-width="1.5"/>
+
+    <!-- totals -->
+    <rect x="24" y="372" width="832" height="76" rx="10" class="dg-box-a"/>
+    <text x="48" y="400" class="dg-count">합계 · 격리 네트워크 7 · Supervisor 7 · Shared 9 · Workload 9 = 클러스터 25개 · 확인된 워커 66대+</text>
+    <text x="48" y="428" class="dg-note">컴포넌트 하나를 반영하는 작업이 실제로는 일곱 번의 작업이 됩니다.</text>
+  </g>
+</svg>

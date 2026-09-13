@@ -1,0 +1,68 @@
+{
+  "slug": "k8s-do",
+  "order": 1,
+  "featured": true,
+  "homeOrder": 1,
+  "name": "k8s-do",
+  "titleKo": "Kubernetes Node Operations CLI",
+  "subtitle": "클러스터 노드 점검·접속 작업을 한 흐름으로 묶은 운영 CLI",
+  "category": "Node Operations",
+  "language": "Bash",
+  "stage": "production",
+  "version": "v3.2.0",
+  "sourceStatus": "실제 운영 CLI · 공개본은 경로/IP 치환",
+  "lead": "노드를 찾고 SSH에 접속하는 작업에서 시작해, Node 진단과 Egress 경로 검증까지 확장한 운영 CLI입니다.",
+  "problem": "노드에서 뭔가 확인할 때마다 순서가 같았습니다. 클러스터를 고르고, kubeconfig를 찾고, `kubectl get nodes -o wide`로 Internal IP를 보고, 그 IP를 복사해 ssh를 치고, 키 경로를 기억해내는 순서입니다. 환경이 일곱 개라 클러스터마다 kubeconfig와 private key가 따로 있어서 이 과정이 매번 반복됐습니다.",
+  "capabilities": [
+    "Cluster Discovery",
+    "Node Discovery",
+    "Bash Completion",
+    "SSH",
+    "Node Doctor",
+    "Egress Diagnostics"
+  ],
+  "diagrams": [
+    {
+      "diagram": "assets/diagrams/tools/k8s-do-flow.svg",
+      "label": "CLI workflow",
+      "caption": "클러스터를 한 번 고르면 노드 목록까지 CLI가 가져오고, 거기서 고른 노드 하나에 대해 SSH·check·doctor·egress-check가 이어집니다.",
+      "alt": "Kubeconfig 디렉터리 또는 Supervisor API에서 클러스터를 찾고, Kubernetes API로 노드 목록을 받아 대상 노드를 고른 뒤 SSH, check, doctor, egress-check를 실행하는 흐름"
+    },
+    {
+      "diagram": "assets/diagrams/tools/k8s-do-egress-check.svg",
+      "label": "egress-check",
+      "caption": "Pod 통신 결과만 보지 않고, 같은 시점에 Egress Node에서 IP 소유·route·ARP·tcpdump·conntrack을 모아 SNAT과 return path를 함께 확인합니다.",
+      "alt": "테스트 Pod에서 목적지로 TCP 연결을 만들고 Egress Node에서 수집한 증거를 SNAT 출발지와 리턴 트래픽 기준으로 판정하는 흐름"
+    }
+  ],
+  "whatItDoes": [
+    "클러스터 이름과 노드 이름(또는 InternalIP, 목록 index)만으로 노드에 SSH 접속",
+    "`nodes`로 NODE · INTERNAL-IP · STATUS · SCHEDULING · VERSION 표를 조회하고, 대상을 안 주면 fzf 또는 직접 입력으로 선택",
+    "`check`로 비대화형 SSH 도달 여부만 빠르게 확인",
+    "`doctor`로 Kubernetes에서 본 노드 상태(describe·Pod·Event)와 노드 OS의 주소·라우팅·neighbor·소켓 정보를 한 리포트로 저장",
+    "`egress-check`로 Egress IP 소유·route·ARP·tcpdump·conntrack 증거를 모아 SNAT과 return path를 판정",
+    "static 모드는 kubeconfig 디렉터리에서, supervisor 모드는 Supervisor API와 Secret에서 접속 정보를 해석 (hybrid 지원)",
+    "Bash completion이 명령·클러스터·노드·옵션을 채우고, 후보를 나열할 때 NODE와 INTERNAL-IP를 같은 표로 보여줌"
+  ],
+  "usage": "$ k8s-do nodes prod-workload\n\nINDEX  NODE              INTERNAL-IP   STATUS  SCHEDULING  VERSION\n1      worker-node-01    192.0.2.21    Ready   Enabled     v1.30.1\n2      worker-node-02    192.0.2.22    Ready   Enabled     v1.30.1\n\n$ k8s-do prod-workload worker-node-01\n$ k8s-do check prod-workload 2\n$ k8s-do exec prod-workload worker-node-01 -- 'sudo journalctl -u kubelet -n 100 --no-pager'\n$ k8s-do doctor prod-workload worker-node-01\n$ k8s-do egress-check prod-workload worker-node-01 \\\n    --egress-ip 192.0.2.92 --dst 198.51.100.60 --port 22",
+  "output": "[PASS] Egress IP is present on the selected Egress Node.\n[PASS] TCP connectivity from fix-tool/... succeeded.\n[PASS] Outbound traffic with source Egress IP 192.0.2.92 was observed.\n[PASS] Return traffic to Egress IP 192.0.2.92 was observed.\n\n# SNAT 증거가 없으면\n[FAIL] Expected SNAT source 192.0.2.92 was not observed on the external interface.\n\n# 같은 IP에 MAC이 둘 이상 응답하면\n[CRITICAL] Multiple MAC addresses responded for the Egress IP.",
+  "implementation": [
+    "노드 목록은 20초, 클러스터 목록은 30초, kubeconfig 같은 asset은 300초 캐시합니다. `refresh`로 전체 또는 특정 클러스터 캐시를 비웁니다.",
+    "Kubernetes API 조회가 실패하고 오래된 캐시가 남아 있으면, 경고를 찍고 그 캐시로 계속 진행합니다. 장애 중에 CLI가 먼저 죽지 않게 하려는 선택입니다.",
+    "static 모드는 kubeconfig 디렉터리의 파일 이름에서 클러스터 이름을 만듭니다. `.conf`, `.kubeconfig`, `.yaml`, `.yml` 확장자를 떼고, private key는 같은 이름으로 확장자 없음 / `.pem` / `.key`를 찾습니다.",
+    "egress-check는 prefix가 맞는 Running Pod가 정확히 하나일 때만 자동 선택합니다. Pod 안에서 TCP 테스트는 `nc` → `curl telnet://` → bash `/dev/tcp` 순으로 가능한 것을 씁니다."
+  ],
+  "safety": [
+    "SSH는 공개키로만 붙습니다. `IdentitiesOnly=yes`, `PreferredAuthentications=publickey`, `PasswordAuthentication=no`, `StrictHostKeyChecking=accept-new`를 고정하고 전용 known_hosts를 씁니다.",
+    "선택한 노드가 선택한 클러스터에 실제로 속하는지 확인한 뒤에 접속합니다.",
+    "대상 Pod가 애매하면 임의로 고르지 않고 실패합니다. prefix가 맞는 Running Pod가 둘 이상이면 `--pod`를 요구합니다.",
+    "ARP 응답이 여러 개면 IP 충돌을 의심하되, ARP만으로 중복이 없다고 단정하지 않습니다. overlay나 proxy ARP 환경에서는 성립하지 않는 판정입니다."
+  ],
+  "history": "처음에는 여러 클러스터의 Node에 빠르게 SSH하기 위한 helper(`cluster-ssh`)였습니다. 이후 kubeconfig 자동 탐색, Node/IP completion, doctor 리포트, Egress 진단을 붙이면서 노드 운영 작업을 묶는 CLI가 됐고 이름도 `k8s-do`로 바꿨습니다.",
+  "evidence_links": [
+    {
+      "label": "k8s-do v3.2 사용 기록과 판정 기준 (sanitized)",
+      "path": "evidence/07-operations-toolkit/docs/k8s-do-runbook.md"
+    }
+  ]
+}

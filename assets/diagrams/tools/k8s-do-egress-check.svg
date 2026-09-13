@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 640" role="img"
+     aria-labelledby="k8sdo-egress-title k8sdo-egress-desc" class="dg">
+  <title id="k8sdo-egress-title">k8s-do egress-check 증거 수집 흐름</title>
+  <desc id="k8sdo-egress-desc">테스트 Pod에서 목적지로 TCP 연결을 만들고, 같은 시점에 Egress Node에서 Egress IP 소유 여부, route/interface, ARP 응답, tcpdump, conntrack을 수집합니다. 수집한 증거를 Pod 출발 트래픽, SNAT 출발지, 리턴 트래픽 세 가지로 correlate해 PASS, FAIL, WARN, CRITICAL 판정을 내리고 리포트로 저장합니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-zone { fill: none; stroke: var(--dg-border, #CBD5E1); stroke-width: 1;
+               stroke-dasharray: 5 4; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 15px; font-weight: 600; }
+    .dg-sub { fill: var(--dg-muted, #64748B); font-size: 12.5px; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 12px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600;
+                 letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-line-a { stroke: var(--dg-accent, #0F766E); stroke-width: 2; fill: none; }
+    .dg-flow { fill: var(--dg-accent-text, #0B5651); font-size: 12px; font-weight: 600; }
+    .dg-ret { fill: var(--dg-muted, #64748B); font-size: 12px; font-weight: 600; }
+    .dg-verdict { fill: var(--dg-text, #0F172A); font-size: 13px; font-weight: 600; }
+  </style>
+
+  <defs>
+    <marker id="eg-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+    <marker id="eg-arrow-a" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-accent, #0F766E)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- cluster zone -->
+    <rect x="24" y="40" width="300" height="250" rx="10" class="dg-zone"/>
+    <text x="44" y="66" class="dg-zone-t">KUBERNETES CLUSTER</text>
+
+    <rect x="48" y="86" width="252" height="72" rx="8" class="dg-box-a"/>
+    <text x="68" y="112" class="dg-label">Test Pod</text>
+    <text x="68" y="132" class="dg-sub">Running · prefix 일치 1개만 선택</text>
+    <text x="68" y="150" class="dg-mono">nc / curl telnet:// / /dev/tcp</text>
+
+    <path d="M 174 158 L 174 194" class="dg-line-a" marker-end="url(#eg-arrow-a)"/>
+
+    <rect x="48" y="196" width="252" height="62" rx="8" class="dg-box-2"/>
+    <text x="68" y="222" class="dg-label">CNI datapath</text>
+    <text x="68" y="242" class="dg-mono">Pod IP · 노드 배치 확인</text>
+
+    <!-- egress node zone -->
+    <rect x="356" y="40" width="304" height="470" rx="10" class="dg-zone"/>
+    <text x="376" y="66" class="dg-zone-t">EGRESS NODE (SSH)</text>
+
+    <rect x="380" y="86" width="256" height="58" rx="8" class="dg-box"/>
+    <text x="400" y="110" class="dg-label">Egress IP 소유 확인</text>
+    <text x="400" y="130" class="dg-mono">이 노드에 실제로 있는가</text>
+
+    <rect x="380" y="156" width="256" height="58" rx="8" class="dg-box"/>
+    <text x="400" y="180" class="dg-label">route / interface</text>
+    <text x="400" y="200" class="dg-mono">목적지로 나가는 실제 경로</text>
+
+    <rect x="380" y="226" width="256" height="58" rx="8" class="dg-box"/>
+    <text x="400" y="250" class="dg-label">ARP 응답</text>
+    <text x="400" y="270" class="dg-mono">복수 MAC 응답 여부</text>
+
+    <rect x="380" y="296" width="256" height="58" rx="8" class="dg-box"/>
+    <text x="400" y="320" class="dg-label">tcpdump</text>
+    <text x="400" y="340" class="dg-mono">any + external interface</text>
+
+    <rect x="380" y="366" width="256" height="58" rx="8" class="dg-box"/>
+    <text x="400" y="390" class="dg-label">conntrack</text>
+    <text x="400" y="410" class="dg-mono">event + table 조회</text>
+
+    <rect x="380" y="436" width="256" height="52" rx="8" class="dg-box-a"/>
+    <text x="400" y="460" class="dg-label">SNAT</text>
+    <text x="400" y="478" class="dg-mono">출발지 → Egress IP</text>
+
+    <!-- pod to egress node -->
+    <path d="M 300 227 L 330 227 L 330 115 L 374 115" class="dg-line-a" marker-end="url(#eg-arrow-a)"/>
+    <text x="196" y="282" class="dg-flow">TCP 요청</text>
+
+    <!-- destination -->
+    <rect x="700" y="436" width="156" height="52" rx="8" class="dg-box"/>
+    <text x="720" y="460" class="dg-label">Destination</text>
+    <text x="720" y="478" class="dg-mono">198.51.100.60:22</text>
+
+    <path d="M 636 452 L 694 452" class="dg-line-a" marker-end="url(#eg-arrow-a)"/>
+    <path d="M 778 436 L 778 400 L 660 400" class="dg-line" marker-end="url(#eg-arrow)"/>
+    <text x="672" y="392" class="dg-ret">return traffic</text>
+
+    <!-- verdict -->
+    <rect x="24" y="536" width="832" height="80" rx="10" class="dg-box-2"/>
+    <text x="48" y="562" class="dg-zone-t">EVIDENCE CORRELATION</text>
+    <text x="48" y="588" class="dg-verdict">Pod 출발 트래픽 · SNAT 출발지 · return 트래픽을 함께 맞춰 판정</text>
+    <text x="48" y="606" class="dg-mono">PASS / FAIL / WARN / CRITICAL · 결과를 리포트 파일로 저장</text>
+    <text x="832" y="588" class="dg-mono" text-anchor="end">ARP 단독으로는 중복 IP 부재를 증명하지 않음</text>
+  </g>
+</svg>

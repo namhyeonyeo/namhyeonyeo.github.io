@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" role="img"
+     aria-labelledby="obs-title obs-desc" class="dg">
+  <title id="obs-title">HTTPProxy FQDN 지표 수집 흐름</title>
+  <desc id="obs-desc">CronJob이 HTTPProxy CR을 kubectl과 jq로 읽어 contour_httpproxy_info 지표로 바꾸고 Pushgateway로 보냅니다. Prometheus가 Pushgateway를 scrape하면 FQDN, Namespace, 상태 label로 PromQL 조회가 가능해집니다. 기존 Prometheus 설정은 그대로 두고 옆에 붙이는 구조입니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-zone { fill: none; stroke: var(--dg-border, #CBD5E1); stroke-width: 1; stroke-dasharray: 5 4; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14.5px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line-a { stroke: var(--dg-accent, #0F766E); stroke-width: 2; fill: none; }
+    .dg-edge { fill: var(--dg-accent-text, #0B5651); font-size: 11.5px; font-weight: 600; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="ob-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-accent, #0F766E)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <rect x="24" y="28" width="484" height="188" rx="10" class="dg-zone"/>
+    <text x="44" y="54" class="dg-zone-t">KUBERNETES</text>
+
+    <rect x="48" y="74" width="196" height="70" rx="8" class="dg-box"/>
+    <text x="68" y="102" class="dg-label">HTTPProxy CR</text>
+    <text x="68" y="123" class="dg-mono">fqdn · namespace · status</text>
+
+    <path d="M 244 109 L 286 109" class="dg-line-a" marker-end="url(#ob-arrow)"/>
+    <text x="248" y="98" class="dg-edge">read</text>
+
+    <rect x="288" y="74" width="196" height="70" rx="8" class="dg-box-a"/>
+    <text x="308" y="102" class="dg-label">CronJob</text>
+    <text x="308" y="123" class="dg-mono">kubectl + jq → metric 변환</text>
+
+    <text x="48" y="184" class="dg-mono">RBAC: httpproxies get / list 까지만</text>
+
+    <rect x="540" y="28" width="316" height="188" rx="10" class="dg-zone"/>
+    <text x="560" y="54" class="dg-zone-t">MONITORING</text>
+
+    <rect x="564" y="74" width="124" height="70" rx="8" class="dg-box"/>
+    <text x="584" y="102" class="dg-label">Pushgateway</text>
+    <text x="584" y="123" class="dg-mono">수집 지점</text>
+
+    <rect x="708" y="74" width="124" height="70" rx="8" class="dg-box"/>
+    <text x="728" y="102" class="dg-label">Prometheus</text>
+    <text x="728" y="123" class="dg-mono">scrape</text>
+
+    <path d="M 484 109 L 558 109" class="dg-line-a" marker-end="url(#ob-arrow)"/>
+    <text x="492" y="98" class="dg-edge">push</text>
+    <path d="M 688 109 L 702 109" class="dg-line-a" marker-end="url(#ob-arrow)"/>
+
+    <text x="564" y="184" class="dg-mono">기존 Prometheus 구성은 수정하지 않음</text>
+
+    <!-- query -->
+    <path d="M 770 144 L 770 244" class="dg-line-a" marker-end="url(#ob-arrow)"/>
+
+    <rect x="24" y="248" width="832" height="80" rx="10" class="dg-box-a"/>
+    <text x="48" y="276" class="dg-label">PromQL</text>
+    <text x="48" y="300" class="dg-mono">contour_httpproxy_info{fqdn="app.example.com"}</text>
+    <text x="48" y="318" class="dg-mono">contour_httpproxy_info{status!="valid"}   ← 실제로 쓰던 쿼리</text>
+
+    <text x="24" y="362" class="dg-note">없던 데이터를 만들어 넣은 사례입니다. 도메인과 HTTPProxy의 연결은 어느 exporter도 주지 않았습니다.</text>
+  </g>
+</svg>

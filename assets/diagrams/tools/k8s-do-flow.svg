@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 700" role="img"
+     aria-labelledby="k8sdo-flow-title k8sdo-flow-desc" class="dg">
+  <title id="k8sdo-flow-title">k8s-do 노드 작업 흐름</title>
+  <desc id="k8sdo-flow-desc">Kubeconfig 디렉터리 또는 Supervisor API에서 클러스터를 찾고, Kubernetes API로 노드 목록(NODE, INTERNAL-IP, STATUS, SCHEDULING, VERSION)을 받은 뒤, 이름·IP·index·fzf·bash completion으로 대상 노드를 고릅니다. 선택된 노드에 대해 SSH 접속, 접속 확인(check), 노드 진단 리포트(doctor), Egress 경로 검증(egress-check)을 실행합니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 15px; font-weight: 600; }
+    .dg-sub { fill: var(--dg-muted, #64748B); font-size: 12.5px; font-weight: 400; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 12px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-cap { fill: var(--dg-accent-text, #0B5651); font-size: 12px; font-weight: 600;
+              letter-spacing: .06em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-stage { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600;
+                letter-spacing: .08em; }
+  </style>
+
+  <defs>
+    <marker id="k8sdo-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- 1. sources -->
+    <text x="40" y="28" class="dg-stage">SOURCE</text>
+    <g>
+      <rect x="150" y="40" width="250" height="62" rx="8" class="dg-box"/>
+      <text x="170" y="66" class="dg-label">Kubeconfig Directory</text>
+      <text x="170" y="86" class="dg-mono">static mode · 파일명 = 클러스터 이름</text>
+    </g>
+    <g>
+      <rect x="480" y="40" width="250" height="62" rx="8" class="dg-box"/>
+      <text x="500" y="66" class="dg-label">Supervisor API</text>
+      <text x="500" y="86" class="dg-mono">supervisor mode · ns/cluster</text>
+    </g>
+
+    <path d="M 275 102 L 275 122 L 440 122 L 440 146" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+    <path d="M 605 102 L 605 122 L 440 122" class="dg-line"/>
+
+    <!-- 2. cluster discovery -->
+    <text x="40" y="180" class="dg-stage">DISCOVERY</text>
+    <rect x="270" y="148" width="340" height="56" rx="8" class="dg-box"/>
+    <text x="292" y="172" class="dg-label">Cluster Discovery</text>
+    <text x="292" y="192" class="dg-mono">static · supervisor · hybrid · 30s cache</text>
+
+    <path d="M 440 204 L 440 240" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+
+    <!-- 3. kubernetes api -->
+    <rect x="270" y="242" width="340" height="52" rx="8" class="dg-box-2"/>
+    <text x="292" y="266" class="dg-label">Kubernetes API</text>
+    <text x="292" y="284" class="dg-mono">get nodes · 20s cache · stale fallback</text>
+
+    <path d="M 440 294 L 440 330" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+
+    <!-- 4. node inventory -->
+    <text x="40" y="366" class="dg-stage">INVENTORY</text>
+    <rect x="180" y="332" width="520" height="88" rx="8" class="dg-box"/>
+    <text x="204" y="358" class="dg-label">Node Inventory</text>
+    <line x1="204" y1="370" x2="676" y2="370" stroke="var(--dg-border, #CBD5E1)" stroke-width="1"/>
+    <text x="204" y="390" class="dg-mono">NODE          INTERNAL-IP      STATUS    SCHEDULING   VERSION</text>
+    <text x="204" y="408" class="dg-mono">worker-node-01   192.0.2.21    Ready     Enabled      v1.30.1</text>
+
+    <path d="M 440 420 L 440 456" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+
+    <!-- 5. target selection -->
+    <text x="40" y="492" class="dg-stage">SELECT</text>
+    <rect x="180" y="458" width="520" height="62" rx="8" class="dg-box-a"/>
+    <text x="204" y="484" class="dg-label">Target Selection</text>
+    <text x="204" y="504" class="dg-mono">node name · InternalIP · index · fzf · bash completion</text>
+    <text x="612" y="484" class="dg-cap" text-anchor="end">1 CLUSTER · 1 NODE</text>
+
+    <!-- fan-out -->
+    <path d="M 440 520 L 440 548" class="dg-line"/>
+    <path d="M 125 548 L 755 548" class="dg-line"/>
+    <path d="M 125 548 L 125 588" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+    <path d="M 335 548 L 335 588" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+    <path d="M 545 548 L 545 588" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+    <path d="M 755 548 L 755 588" class="dg-line" marker-end="url(#k8sdo-arrow)"/>
+
+    <!-- 6. actions -->
+    <text x="40" y="626" class="dg-stage">ACTION</text>
+    <g>
+      <rect x="30" y="590" width="190" height="74" rx="8" class="dg-box"/>
+      <text x="50" y="616" class="dg-label">SSH</text>
+      <text x="50" y="636" class="dg-sub">공개키 전용 접속</text>
+      <text x="50" y="654" class="dg-mono">k8s-do &lt;cluster&gt; &lt;node&gt;</text>
+    </g>
+    <g>
+      <rect x="240" y="590" width="190" height="74" rx="8" class="dg-box"/>
+      <text x="260" y="616" class="dg-label">check</text>
+      <text x="260" y="636" class="dg-sub">접속 가능 여부</text>
+      <text x="260" y="654" class="dg-mono">reachable / unreachable</text>
+    </g>
+    <g>
+      <rect x="450" y="590" width="190" height="74" rx="8" class="dg-box"/>
+      <text x="470" y="616" class="dg-label">doctor</text>
+      <text x="470" y="636" class="dg-sub">노드 진단 리포트</text>
+      <text x="470" y="654" class="dg-mono">API 상태 + OS 주소·라우팅</text>
+    </g>
+    <g>
+      <rect x="660" y="590" width="190" height="74" rx="8" class="dg-box-a"/>
+      <text x="680" y="616" class="dg-label">egress-check</text>
+      <text x="680" y="636" class="dg-sub">Egress 경로 증거 수집</text>
+      <text x="680" y="654" class="dg-mono">SNAT · return path 판정</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 330" role="img"
+     aria-labelledby="eg-sip-title eg-sip-desc" class="dg">
+  <title id="eg-sip-title">Egress 출발지 IP 확인 경로</title>
+  <desc id="eg-sip-desc">라벨이 붙은 Pod의 트래픽이 Antrea Egress 정책에 따라 Egress 노드에서 고정 IP로 SNAT되어 방화벽을 지나 외부 시스템에 도달합니다. 설정이 적용됐다는 사실만으로는 부족해서, 반대편 서버에서 tcpdump로 실제 출발지 주소를 확인한 뒤에야 방화벽에 등록할 IP를 확정했습니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-box-r { fill: var(--dg-rca-fill, #FBECEB); stroke: var(--dg-rca, #C2413B); stroke-width: 1.5; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-line-r { stroke: var(--dg-rca, #C2413B); stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
+    .dg-edge { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; }
+    .dg-proof { fill: var(--dg-rca, #C2413B); font-size: 12.5px; font-weight: 600; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="es-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+    <marker id="es-arrow-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-rca, #C2413B)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <rect x="24" y="72" width="150" height="70" rx="8" class="dg-box"/>
+    <text x="44" y="100" class="dg-label">Selected Pod</text>
+    <text x="44" y="121" class="dg-mono">podSelector 대상</text>
+
+    <path d="M 174 107 L 210 107" class="dg-line" marker-end="url(#es-arrow)"/>
+
+    <rect x="212" y="72" width="166" height="70" rx="8" class="dg-box-a"/>
+    <text x="232" y="100" class="dg-label">Antrea Egress</text>
+    <text x="232" y="121" class="dg-mono">ExternalIPPool 배정</text>
+
+    <path d="M 378 107 L 414 107" class="dg-line" marker-end="url(#es-arrow)"/>
+
+    <rect x="416" y="62" width="176" height="90" rx="8" class="dg-box-a"/>
+    <text x="436" y="88" class="dg-label">Egress Node</text>
+    <text x="436" y="110" class="dg-mono">SNAT</text>
+    <text x="436" y="130" class="dg-mono">고정 출발지 192.0.2.92</text>
+
+    <path d="M 592 107 L 628 107" class="dg-line" marker-end="url(#es-arrow)"/>
+
+    <rect x="630" y="72" width="110" height="70" rx="8" class="dg-box"/>
+    <text x="650" y="100" class="dg-label">Firewall</text>
+    <text x="650" y="121" class="dg-mono">source allowlist</text>
+
+    <path d="M 740 107 L 772 107" class="dg-line" marker-end="url(#es-arrow)"/>
+
+    <rect x="774" y="72" width="82" height="70" rx="8" class="dg-box"/>
+    <text x="790" y="100" class="dg-label">외부</text>
+    <text x="790" y="121" class="dg-mono">시스템</text>
+
+    <!-- proof -->
+    <path d="M 815 142 L 815 196" class="dg-line-r" marker-end="url(#es-arrow-r)"/>
+    <rect x="452" y="198" width="404" height="72" rx="8" class="dg-box-r"/>
+    <text x="476" y="226" class="dg-proof">반대편에서 tcpdump</text>
+    <text x="476" y="250" class="dg-mono">출발지 주소가 정말 192.0.2.92 인지 확인</text>
+
+    <rect x="24" y="198" width="404" height="72" rx="8" class="dg-box"/>
+    <text x="48" y="226" class="dg-label">설정 확인만으로 부족했던 이유</text>
+    <text x="48" y="250" class="dg-mono">selector가 맞아도 CNI가 다른 노드에 IP를 둘 수 있음</text>
+
+    <text x="24" y="306" class="dg-note">정책이 적용됐다는 것과 트래픽이 그 주소로 나간다는 것은 다른 사실입니다.</text>
+  </g>
+</svg>

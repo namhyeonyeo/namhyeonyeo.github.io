@@ -8,7 +8,7 @@
 
 | 도구 | 무엇을 하는가 | 공개 범위 |
 |---|---|---|
-| `cluster-ssh` v3 | 클러스터·노드 조회, 노드 SSH, 노드 상태 수집, Egress datapath 판정 | 사용법과 판정 기준 문서 |
+| `k8s-do` v3.2 | 클러스터·노드 조회, 노드 SSH, 노드 상태 수집, Egress datapath 판정 | 사용법과 판정 기준 문서 |
 | `pv-rollback-backup.sh` | 스토리지 전환 전에 PVC/PV 매핑과 롤백용 YAML을 만들어 둠 | 스크립트 전문 |
 | DHCP / IP 충돌 점검 | lease 상태와 ARP 응답, Kubernetes Node IP를 교차 확인 | 명령 절차 |
 | HTTPProxy FQDN Exporter | HTTPProxy CR을 Prometheus metric으로 변환 | 재현 예제 |

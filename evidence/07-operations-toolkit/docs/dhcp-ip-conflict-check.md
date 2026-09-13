@@ -70,7 +70,7 @@ kubectl get nodes -o wide
 
 `arping` 응답에 MAC이 둘 이상 보이면 IP 충돌을 의심합니다. 이 경우 IP를 재사용하지 않고 응답 MAC을 vCenter / 스위치 MAC table에서 역추적합니다.
 
-같은 판정을 노드 Egress IP 쪽에서도 쓰고 있습니다. `cluster-ssh egress-check`가 복수 MAC 응답을 `[CRITICAL]`로 올리는 것이 같은 이유입니다.
+같은 판정을 노드 Egress IP 쪽에서도 쓰고 있습니다. `k8s-do egress-check`가 복수 MAC 응답을 `[CRITICAL]`로 올리는 것이 같은 이유입니다.
 
 ## 7. pool이 실제로 부족하면 lease pool을 늘린다
 

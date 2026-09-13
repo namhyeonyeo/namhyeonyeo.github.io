@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 540" role="img"
+     aria-labelledby="ing-tobe-title ing-tobe-desc" class="dg">
+  <title id="ing-tobe-title">TO-BE 인그레스 구조</title>
+  <desc id="ing-tobe-desc">Control plane에서는 Ingress와 IngressClass, AviInfraSetting을 AKO가 읽어 AVI Controller의 Virtual Service 설정으로 변환합니다. Data plane에서는 클라이언트 요청이 DNS와 네트워크 영역별 AVI VIP, Service Engine을 거쳐 Kubernetes Service로 바로 전달됩니다. 네트워크 선택은 IngressClass와 AviInfraSetting에서 결정됩니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-zone { fill: none; stroke: var(--dg-border, #CBD5E1); stroke-width: 1; stroke-dasharray: 5 4; }
+    .dg-zone-a { fill: none; stroke: var(--dg-accent, #0F766E); stroke-width: 1; stroke-dasharray: 5 4; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14.5px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-zone-ta { fill: var(--dg-accent-text, #0B5651); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-line-a { stroke: var(--dg-accent, #0F766E); stroke-width: 2; fill: none; }
+    .dg-dash-a { stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; fill: none; stroke-dasharray: 4 4; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="it-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+    <marker id="it-arrow-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-accent, #0F766E)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- control plane -->
+    <rect x="24" y="34" width="832" height="150" rx="10" class="dg-zone-a"/>
+    <text x="44" y="60" class="dg-zone-ta">CONTROL PLANE — 네트워크 선택이 결정되는 지점</text>
+
+    <rect x="48" y="78" width="248" height="72" rx="8" class="dg-box-a"/>
+    <text x="68" y="104" class="dg-label">Ingress</text>
+    <text x="68" y="124" class="dg-mono">+ IngressClass</text>
+    <text x="68" y="142" class="dg-mono">+ AviInfraSetting</text>
+
+    <path d="M 296 114 L 344 114" class="dg-line-a" marker-end="url(#it-arrow-a)"/>
+
+    <rect x="346" y="78" width="200" height="72" rx="8" class="dg-box-a"/>
+    <text x="366" y="106" class="dg-label">AKO</text>
+    <text x="366" y="128" class="dg-mono">Ingress → AVI 객체 변환</text>
+
+    <path d="M 546 114 L 594 114" class="dg-line-a" marker-end="url(#it-arrow-a)"/>
+
+    <rect x="596" y="78" width="232" height="72" rx="8" class="dg-box"/>
+    <text x="616" y="104" class="dg-label">AVI Controller</text>
+    <text x="616" y="124" class="dg-mono">Virtual Service 설정</text>
+    <text x="616" y="142" class="dg-mono">네트워크 / VIP 배정</text>
+
+    <!-- data plane -->
+    <rect x="24" y="216" width="832" height="200" rx="10" class="dg-zone"/>
+    <text x="44" y="242" class="dg-zone-t">DATA PLANE — Envoy 홉이 사라진 경로</text>
+
+    <rect x="48" y="262" width="132" height="64" rx="8" class="dg-box"/>
+    <text x="68" y="290" class="dg-label">Client</text>
+    <text x="68" y="311" class="dg-mono">사용자 요청</text>
+
+    <path d="M 180 294 L 216 294" class="dg-line" marker-end="url(#it-arrow)"/>
+
+    <rect x="218" y="262" width="120" height="64" rx="8" class="dg-box"/>
+    <text x="238" y="290" class="dg-label">DNS</text>
+    <text x="238" y="311" class="dg-mono">example.com</text>
+
+    <path d="M 338 294 L 374 294" class="dg-line" marker-end="url(#it-arrow)"/>
+
+    <!-- network separated VIPs -->
+    <rect x="376" y="244" width="232" height="48" rx="8" class="dg-box-a"/>
+    <text x="396" y="264" class="dg-label">AVI VIP · 업무 네트워크</text>
+    <text x="396" y="282" class="dg-mono">Virtual Service / Service Engine</text>
+
+    <rect x="376" y="300" width="232" height="48" rx="8" class="dg-box-a"/>
+    <text x="396" y="320" class="dg-label">AVI VIP · 통제 네트워크</text>
+    <text x="396" y="338" class="dg-mono">Virtual Service / Service Engine</text>
+
+    <path d="M 608 268 L 654 268 L 654 288" class="dg-line-a" marker-end="url(#it-arrow-a)"/>
+    <path d="M 608 324 L 654 324 L 654 304" class="dg-line-a"/>
+
+    <rect x="656" y="262" width="96" height="64" rx="8" class="dg-box"/>
+    <text x="676" y="290" class="dg-label">Service</text>
+    <text x="676" y="311" class="dg-mono">Kubernetes</text>
+
+    <path d="M 752 294 L 788 294" class="dg-line" marker-end="url(#it-arrow)"/>
+    <rect x="790" y="262" width="60" height="64" rx="8" class="dg-box"/>
+    <text x="806" y="298" class="dg-label">Pod</text>
+
+    <!-- config applies to VIP -->
+    <path d="M 712 150 L 712 196 L 492 196 L 492 240" class="dg-dash-a" marker-end="url(#it-arrow-a)"/>
+    <text x="508" y="192" class="dg-mono">configures</text>
+
+    <!-- change note -->
+    <rect x="24" y="444" width="832" height="72" rx="10" class="dg-box-a"/>
+    <text x="48" y="472" class="dg-label">바뀐 것</text>
+    <text x="48" y="496" class="dg-note">네트워크 선택이 서비스 매니페스트가 아니라 IngressClass와 AviInfraSetting에서 결정됩니다. 라우팅은 AKO가 AVI로 옮깁니다.</text>
+  </g>
+</svg>

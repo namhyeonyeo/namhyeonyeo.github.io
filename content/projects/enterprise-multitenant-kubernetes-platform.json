@@ -33,9 +33,10 @@
   ],
   "architecture": {
     "flow": {
-      "label": "Platform Overview",
-      "mermaid": "flowchart TB\n  subgraph ZONE[\"격리 네트워크 × 7 — 환경 간 통신 없음\"]\n    SUP[\"Supervisor Cluster (환경당 1개)\"] --> SHARED[\"Shared Cluster — CI/CD · 공통 컴포넌트\"]\n    SUP --> WORK[\"Workload Cluster — 업무 애플리케이션\"]\n    SHARED --> ING[\"Ingress / LoadBalancer\"]\n    WORK --> ING\n    SHARED --> REG[\"Registry (Harbor)\"]\n    WORK --> STG[\"Storage (PowerStore CSI)\"]\n  end",
-      "caption": "환경마다 Supervisor 1개 아래 Shared·Workload 게스트 클러스터를 두는 동일한 구성을 7개 네트워크에 반복했습니다. Supervisor 7 + Shared 9 + Workload 9 = 25개 클러스터, 확인된 워커 66대+. 상세 환경별 워커 수는 Home의 Platform Scope 표를 참고하세요."
+      "label": "Platform overview",
+      "diagram": "assets/diagrams/projects/multitenant-platform.svg",
+      "caption": "환경 하나의 구성을 7개 네트워크에 그대로 반복했습니다. 환경별 워커 수는 Home의 Platform Scope 표에 있습니다.",
+      "alt": "격리 네트워크 하나 안에서 Supervisor 클러스터 아래 Shared와 Workload 클러스터를 두고 Ingress, Registry, Storage, Observability를 운영하는 구성을 7개 네트워크에 반복한 플랫폼 개요"
     },
     "notes": [
       "고객사 네트워크 대역, 실제 클러스터 이름, 도메인은 제거했습니다. 구조와 규모만 표기합니다."

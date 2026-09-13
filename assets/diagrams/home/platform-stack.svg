@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 430" role="img"
+     aria-labelledby="ps-title ps-desc" class="dg">
+  <title id="ps-title">담당해 온 플랫폼 계층</title>
+  <desc id="ps-desc">업무 애플리케이션 아래로 Kubernetes 플랫폼, 네트워크와 인그레스, 온프레미스 인프라까지 네 개 계층을 다뤄 왔습니다. 계층마다 클러스터 lifecycle과 정책, Ingress와 Egress, 스토리지와 레지스트리, 가상화 기반을 담당했고 오른쪽 축의 GitOps, 관측성, 운영 자동화는 계층 전체에 걸칩니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-layer { fill: var(--dg-text, #0F172A); font-size: 15px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 12px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-side { fill: var(--dg-accent-text, #0B5651); font-size: 12.5px; font-weight: 600; }
+    .dg-tag { fill: var(--dg-muted, #64748B); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+  </style>
+  <defs>
+    <marker id="ps-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <text x="24" y="30" class="dg-tag">담당 범위</text>
+
+    <rect x="24" y="44" width="612" height="72" rx="8" class="dg-box-2"/>
+    <text x="48" y="74" class="dg-layer">Applications / Workloads</text>
+    <text x="48" y="98" class="dg-mono">업무 애플리케이션 — 플랫폼이 받쳐야 하는 대상</text>
+
+    <path d="M 330 116 L 330 138" class="dg-line" marker-end="url(#ps-arrow)"/>
+
+    <rect x="24" y="140" width="612" height="76" rx="8" class="dg-box-a"/>
+    <text x="48" y="170" class="dg-layer">Kubernetes Platform</text>
+    <text x="48" y="194" class="dg-mono">클러스터 lifecycle · RBAC / Quota · Admission Policy · Autoscaling · CSI</text>
+
+    <path d="M 330 216 L 330 238" class="dg-line" marker-end="url(#ps-arrow)"/>
+
+    <rect x="24" y="240" width="612" height="76" rx="8" class="dg-box-a"/>
+    <text x="48" y="270" class="dg-layer">Networking / Ingress / Load Balancer</text>
+    <text x="48" y="294" class="dg-mono">Ingress · AKO / AVI · Contour / Envoy · Antrea Egress · DNS / VIP</text>
+
+    <path d="M 330 316 L 330 338" class="dg-line" marker-end="url(#ps-arrow)"/>
+
+    <rect x="24" y="340" width="612" height="72" rx="8" class="dg-box"/>
+    <text x="48" y="370" class="dg-layer">On-Prem Infrastructure</text>
+    <text x="48" y="394" class="dg-mono">vSphere / VKS · 스토리지 · 레지스트리 · 폐쇄망 반입</text>
+
+    <!-- cross-cutting -->
+    <rect x="660" y="44" width="196" height="368" rx="8" class="dg-box-2"/>
+    <text x="684" y="74" class="dg-tag">계층 전체에 걸친 것</text>
+    <text x="684" y="118" class="dg-side">GitOps</text>
+    <text x="684" y="140" class="dg-mono">관리 주체를 Git으로</text>
+    <text x="684" y="188" class="dg-side">Observability</text>
+    <text x="684" y="210" class="dg-mono">없던 지표 만들기</text>
+    <text x="684" y="258" class="dg-side">Troubleshooting</text>
+    <text x="684" y="280" class="dg-mono">계층을 따라 내려가기</text>
+    <text x="684" y="328" class="dg-side">Operations Toolkit</text>
+    <text x="684" y="350" class="dg-mono">반복 작업을 도구로</text>
+  </g>
+</svg>

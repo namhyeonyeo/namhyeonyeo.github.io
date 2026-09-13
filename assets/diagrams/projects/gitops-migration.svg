@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" role="img"
+     aria-labelledby="gitops-title gitops-desc" class="dg">
+  <title id="gitops-title">인프라 리소스 관리 주체 이동</title>
+  <desc id="gitops-desc">AS-IS에서는 운영자가 Jumpbox에서 Helm과 YAML을 kubectl로 직접 적용했고, 클러스터의 현재 상태가 어느 파일과 같은지는 사람이 기억했습니다. TO-BE에서는 GitLab 저장소의 desired state를 ArgoCD가 클러스터에 반영하고 sync 상태를 되돌려 줍니다. 바뀐 것은 도구가 아니라 리소스 관리 주체입니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-l { fill: var(--dg-legacy-fill, #F1F5F9); stroke: var(--dg-legacy, #94A3B8); stroke-width: 1.5; }
+    .dg-box-a { fill: var(--dg-accent-fill, #E6F2F1); stroke: var(--dg-accent, #0F766E); stroke-width: 1.5; }
+    .dg-zone { fill: none; stroke: var(--dg-border, #CBD5E1); stroke-width: 1; stroke-dasharray: 5 4; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14.5px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-zone-ta { fill: var(--dg-accent-text, #0B5651); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-line-a { stroke: var(--dg-accent, #0F766E); stroke-width: 2; fill: none; }
+    .dg-dash { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; stroke-dasharray: 4 4; }
+    .dg-owner { fill: var(--dg-text, #0F172A); font-size: 12.5px; font-weight: 600; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="gm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+    <marker id="gm-arrow-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-accent, #0F766E)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- AS-IS -->
+    <rect x="24" y="34" width="832" height="176" rx="10" class="dg-zone"/>
+    <text x="44" y="60" class="dg-zone-t">AS-IS — 관리 주체: 운영자의 기억</text>
+
+    <rect x="48" y="80" width="150" height="64" rx="8" class="dg-box"/>
+    <text x="68" y="108" class="dg-label">운영자</text>
+    <text x="68" y="129" class="dg-mono">환경마다 반복</text>
+
+    <path d="M 198 112 L 234 112" class="dg-line" marker-end="url(#gm-arrow)"/>
+
+    <rect x="236" y="80" width="150" height="64" rx="8" class="dg-box-l"/>
+    <text x="256" y="108" class="dg-label">Jumpbox</text>
+    <text x="256" y="129" class="dg-mono">YAML 보관 위치</text>
+
+    <path d="M 386 112 L 422 112" class="dg-line" marker-end="url(#gm-arrow)"/>
+
+    <rect x="424" y="80" width="178" height="64" rx="8" class="dg-box-l"/>
+    <text x="444" y="108" class="dg-label">Helm / YAML</text>
+    <text x="444" y="129" class="dg-mono">kubectl apply · helm upgrade</text>
+
+    <path d="M 602 112 L 638 112" class="dg-line" marker-end="url(#gm-arrow)"/>
+
+    <rect x="640" y="80" width="188" height="64" rx="8" class="dg-box"/>
+    <text x="660" y="108" class="dg-label">Kubernetes Cluster</text>
+    <text x="660" y="129" class="dg-mono">현재 상태</text>
+
+    <text x="48" y="186" class="dg-note">지금 올라간 것이 어느 파일과 같은지 확인할 방법이 사람뿐이었습니다.</text>
+
+    <!-- transition -->
+    <path d="M 440 210 L 440 246" class="dg-line-a" marker-end="url(#gm-arrow-a)"/>
+    <text x="458" y="234" class="dg-owner">관리 주체 이전</text>
+
+    <!-- TO-BE -->
+    <rect x="24" y="252" width="832" height="190" rx="10" class="dg-zone"/>
+    <text x="44" y="278" class="dg-zone-ta">TO-BE — 관리 주체: Git 저장소의 desired state</text>
+
+    <rect x="48" y="298" width="150" height="64" rx="8" class="dg-box"/>
+    <text x="68" y="326" class="dg-label">엔지니어</text>
+    <text x="68" y="347" class="dg-mono">merge request</text>
+
+    <path d="M 198 330 L 234 330" class="dg-line-a" marker-end="url(#gm-arrow-a)"/>
+
+    <rect x="236" y="298" width="178" height="64" rx="8" class="dg-box-a"/>
+    <text x="256" y="326" class="dg-label">GitLab</text>
+    <text x="256" y="347" class="dg-mono">환경별 저장소 · 변경 이력</text>
+
+    <path d="M 414 330 L 450 330" class="dg-line-a" marker-end="url(#gm-arrow-a)"/>
+
+    <rect x="452" y="298" width="178" height="64" rx="8" class="dg-box-a"/>
+    <text x="472" y="326" class="dg-label">ArgoCD</text>
+    <text x="472" y="347" class="dg-mono">공유 클러스터 · sync</text>
+
+    <path d="M 630 330 L 666 330" class="dg-line-a" marker-end="url(#gm-arrow-a)"/>
+
+    <rect x="668" y="298" width="160" height="64" rx="8" class="dg-box"/>
+    <text x="688" y="326" class="dg-label">Kubernetes</text>
+    <text x="688" y="347" class="dg-mono">Cluster</text>
+
+    <path d="M 748 362 L 748 392 L 541 392" class="dg-dash" marker-end="url(#gm-arrow)"/>
+    <text x="556" y="410" class="dg-mono">sync status / drift</text>
+
+    <!-- point -->
+    <rect x="24" y="470" width="832" height="66" rx="10" class="dg-box-a"/>
+    <text x="48" y="498" class="dg-label">핵심</text>
+    <text x="48" y="521" class="dg-note">ArgoCD를 설치한 것이 아니라, 이미 서비스 중인 리소스의 관리 주체를 Git으로 옮긴 작업입니다.</text>
+  </g>
+</svg>

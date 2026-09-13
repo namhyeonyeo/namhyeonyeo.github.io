@@ -16,7 +16,6 @@
     "Guest Kubernetes cluster API 요청이 정상 응답하지 않았습니다.",
     "Control-plane recovery와 cluster management operation이 정상적으로 진행되지 않았습니다."
   ],
-  "architecture": "DHCP / Node address\n      ↓\netcd peer certificate SAN\n      ↓\netcd quorum\n      ↓\nkube-apiserver\n      ↓\nCluster API",
   "investigation": [
     "애플리케이션보다 아래 계층으로 범위를 줄이고 control-plane network와 etcd peer 상태를 확인했습니다.",
     "정상 환경과 DHCP/address assignment, certificate SAN, etcd peer health를 비교했습니다."
@@ -51,6 +50,14 @@
     {
       "label": "Sanitized case note",
       "path": "evidence/06-sre-troubleshooting-casebook/cases/01-guest-cluster-api-etcd-san-mismatch.md"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagram": "assets/diagrams/troubleshooting/etcd-san-mismatch.svg",
+      "label": "의존 경로",
+      "caption": "증상은 API timeout이었지만 원인은 네 계층 아래 DHCP 주소 할당에 있었습니다.",
+      "alt": "DHCP 주소 할당 충돌이 control plane VM 주소를 바꾸고, etcd peer 인증서 SAN 불일치로 etcd clustering이 실패해 kube-apiserver가 무응답이 되고 Cluster API 작업이 막히는 의존 경로"
     }
   ]
 }

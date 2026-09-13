@@ -16,7 +16,6 @@
     "외부 시스템이 출발지 IP로 접근을 허용하는데, Antrea Egress를 적용한 뒤 그 Pod가 실제로 어떤 주소로 나가는지 확신할 수 없었습니다.",
     "매니페스트는 적용됐지만 방화벽에 등록할 주소를 설정 값만 보고 정할 수는 없었습니다."
   ],
-  "architecture": "Labeled Pod → Antrea Egress → SNAT Egress IP → Remote Host",
   "investigation": [
     "ExternalIPPool과 Egress의 nodeSelector / podSelector가 어느 노드와 어느 Pod에 걸리는지 먼저 확인했습니다.",
     "Egress IP가 선택된 노드에 실제로 올라와 있는지, 외부로 나가는 route interface가 무엇인지 노드에서 확인했습니다.",
@@ -46,7 +45,7 @@
   ],
   "prevention": [
     "외부 연동을 새로 붙일 때 Egress 대상 label과 실제 출발지 IP를 같이 확인하도록 절차에 넣었습니다.",
-    "이 확인 과정을 `cluster-ssh egress-check`로 옮겨서, Pod 탐색부터 SNAT 판정까지 한 명령으로 실행하고 결과를 로그로 남기게 했습니다."
+    "이 확인 과정을 `k8s-do egress-check`로 옮겨서, Pod 탐색부터 SNAT 판정까지 한 명령으로 실행하고 결과를 로그로 남기게 했습니다."
   ],
   "lessons": [
     "SNAT이 어디서 일어나는지는 문서가 아니라 반대편 캡처가 알려줍니다. 확인 절차가 길어질수록 사람이 건너뛰게 되므로, 같은 판정을 반복할 것 같으면 도구로 묶는 편이 낫습니다."
@@ -55,6 +54,14 @@
     {
       "label": "Validation note",
       "path": "evidence/03-antrea-egress-static-snat/docs/validation.md"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagram": "assets/diagrams/troubleshooting/egress-source-ip.svg",
+      "label": "검증 경로",
+      "caption": "설정이 적용됐다는 것과 그 주소로 나간다는 것은 다른 사실이어서, 반대편 캡처를 근거로 삼았습니다.",
+      "alt": "라벨이 붙은 Pod의 트래픽이 Antrea Egress 정책으로 Egress 노드에서 고정 IP로 SNAT되어 방화벽을 지나 외부 시스템에 도달하고, 반대편 서버의 tcpdump로 출발지 주소를 확인하는 경로"
     }
   ]
 }

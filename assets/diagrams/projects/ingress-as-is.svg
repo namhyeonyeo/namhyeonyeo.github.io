@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 540" role="img"
+     aria-labelledby="ing-asis-title ing-asis-desc" class="dg">
+  <title id="ing-asis-title">AS-IS 인그레스 구조</title>
+  <desc id="ing-asis-desc">Control plane에서는 HTTPProxy와 Ingress 리소스를 Contour 컨트롤러가 읽어 Envoy 설정을 만듭니다. Data plane에서는 클라이언트 요청이 DNS와 AVI VIP, Service Engine을 거쳐 Envoy로 들어오고, Envoy가 Kubernetes Service를 통해 Pod로 전달합니다. 네트워크 영역을 나누는 지점이 Envoy 앞단에 없습니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-l { fill: var(--dg-legacy-fill, #F1F5F9); stroke: var(--dg-legacy, #94A3B8); stroke-width: 1.5; }
+    .dg-zone { fill: none; stroke: var(--dg-border, #CBD5E1); stroke-width: 1; stroke-dasharray: 5 4; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 14.5px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11.5px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-zone-t { fill: var(--dg-muted, #64748B); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; }
+    .dg-line { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; }
+    .dg-dash { stroke: var(--dg-line, #94A3B8); stroke-width: 1.5; fill: none; stroke-dasharray: 4 4; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="ia-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <!-- control plane -->
+    <rect x="24" y="34" width="832" height="150" rx="10" class="dg-zone"/>
+    <text x="44" y="60" class="dg-zone-t">CONTROL PLANE — 라우팅 정의가 설정으로 바뀌는 경로</text>
+
+    <rect x="48" y="78" width="228" height="72" rx="8" class="dg-box"/>
+    <text x="68" y="106" class="dg-label">HTTPProxy / Ingress</text>
+    <text x="68" y="128" class="dg-mono">라우팅 정의 (Kubernetes CR)</text>
+
+    <path d="M 276 114 L 330 114" class="dg-line" marker-end="url(#ia-arrow)"/>
+
+    <rect x="332" y="78" width="228" height="72" rx="8" class="dg-box-l"/>
+    <text x="352" y="106" class="dg-label">Contour Controller</text>
+    <text x="352" y="128" class="dg-mono">CR → Envoy 설정 생성</text>
+
+    <path d="M 560 114 L 614 114" class="dg-line" marker-end="url(#ia-arrow)"/>
+
+    <rect x="616" y="78" width="212" height="72" rx="8" class="dg-box"/>
+    <text x="636" y="106" class="dg-label">Envoy Config</text>
+    <text x="636" y="128" class="dg-mono">xDS</text>
+
+    <!-- data plane -->
+    <rect x="24" y="216" width="832" height="200" rx="10" class="dg-zone"/>
+    <text x="44" y="242" class="dg-zone-t">DATA PLANE — 실제 트래픽 경로</text>
+
+    <rect x="48" y="262" width="132" height="64" rx="8" class="dg-box"/>
+    <text x="68" y="290" class="dg-label">Client</text>
+    <text x="68" y="311" class="dg-mono">사용자 요청</text>
+
+    <path d="M 180 294 L 216 294" class="dg-line" marker-end="url(#ia-arrow)"/>
+
+    <rect x="218" y="262" width="120" height="64" rx="8" class="dg-box"/>
+    <text x="238" y="290" class="dg-label">DNS</text>
+    <text x="238" y="311" class="dg-mono">example.com</text>
+
+    <path d="M 338 294 L 374 294" class="dg-line" marker-end="url(#ia-arrow)"/>
+
+    <rect x="376" y="252" width="176" height="84" rx="8" class="dg-box"/>
+    <text x="396" y="280" class="dg-label">AVI VIP</text>
+    <text x="396" y="301" class="dg-mono">Service Engine</text>
+    <text x="396" y="321" class="dg-mono">L4 전달</text>
+
+    <path d="M 552 294 L 588 294" class="dg-line" marker-end="url(#ia-arrow)"/>
+
+    <rect x="590" y="252" width="140" height="84" rx="8" class="dg-box-l"/>
+    <text x="610" y="280" class="dg-label">Envoy</text>
+    <text x="610" y="301" class="dg-mono">L7 라우팅</text>
+    <text x="610" y="321" class="dg-mono">TLS 종료</text>
+
+    <path d="M 730 294 L 766 294" class="dg-line" marker-end="url(#ia-arrow)"/>
+
+    <rect x="768" y="252" width="60" height="84" rx="8" class="dg-box"/>
+    <text x="784" y="286" class="dg-label">Svc</text>
+    <text x="782" y="310" class="dg-mono">Pod</text>
+
+    <!-- config applies to envoy -->
+    <path d="M 722 150 L 722 200 L 660 200 L 660 252" class="dg-dash" marker-end="url(#ia-arrow)"/>
+    <text x="676" y="196" class="dg-mono">configures</text>
+
+    <!-- limitation note -->
+    <rect x="24" y="444" width="832" height="72" rx="10" class="dg-box-l"/>
+    <text x="48" y="472" class="dg-label">제약</text>
+    <text x="48" y="496" class="dg-note">네트워크 영역을 나누려면 Envoy 앞단에서 갈라져야 하는데, HTTPProxy에는 그 선택을 표현할 자리가 없었습니다.</text>
+  </g>
+</svg>

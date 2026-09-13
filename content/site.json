@@ -121,7 +121,9 @@
       }
     ],
     "implication": "Shared 클러스터 9개를 전부 워커 3대로 맞추고 Workload만 환경 성격에 따라 다르게 둔 것은 의도한 설계입니다. 환경별 특수 구성이 하나 늘어나면 일곱 배로 늘어나기 때문입니다. 그럼에도 Harbor 레지스트리, MinIO, DHCP, 점프박스, AVI Controller와 Service Engine, GitLab과 ArgoCD, 인증서 체계는 환경마다 따로 존재하고 게스트 클러스터마다 AKO와 Contour도 개별 관리 대상입니다. 컴포넌트 하나를 반영하는 작업이 실제로는 일곱 번의 작업이 됩니다. 운영 자동화와 GitOps 전환에 시간을 쓴 이유가 여기 있습니다.",
-    "diagram": "assets/diagrams/network-isolation-topology.svg"
+    "diagram": "assets/diagrams/network-isolation-topology.svg",
+    "diagramAlt": "DMZ와 내부 구역에 각각 격리된 네트워크가 있고, 환경마다 Supervisor 클러스터와 Shared·Workload 게스트 클러스터를 둔 망분리 토폴로지",
+    "diagramCaption": "환경 간 통신 경로가 없어, 같은 컴포넌트를 환경 수만큼 따로 운영합니다."
   },
   "readingGuide": {
     "title": "시간이 없다면 이 세 개만",
@@ -138,8 +140,8 @@
       },
       {
         "label": "직접 만든 것",
-        "text": "노드 접속부터 Egress SNAT 판정까지 한 명령으로 끝내는 cluster-ssh",
-        "href": "tools/#cluster-ssh"
+        "text": "노드 탐색부터 Egress SNAT 판정까지 한 흐름으로 묶은 k8s-do",
+        "href": "tools/k8s-do/"
       }
     ]
   },
@@ -228,5 +230,11 @@
     "name": "이테크시스템",
     "nameEn": "E-Tech System",
     "description": "VMware · Dell 기반 엔터프라이즈 인프라 구축·운영 SI. 금융·공공 고객의 온프레미스 클라우드 플랫폼 담당."
+  },
+  "platformStack": {
+    "title": "담당해 온 플랫폼 계층",
+    "diagram": "assets/diagrams/home/platform-stack.svg",
+    "caption": "특정 고객 topology가 아니라, 지금까지 다뤄 온 계층과 그 위에 걸친 작업을 정리한 그림입니다.",
+    "alt": "업무 애플리케이션 아래로 Kubernetes 플랫폼, 네트워크와 인그레스, 온프레미스 인프라 네 계층과 GitOps, 관측성, 장애 분석, 운영 자동화가 계층 전체에 걸치는 구성"
   }
 }

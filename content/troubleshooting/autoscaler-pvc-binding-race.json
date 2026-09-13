@@ -17,7 +17,6 @@
     "scale-out 시점은 Kasten K10 backup workload가 실행되는 시간대와 겹쳐 있었습니다.",
     "backup 작업이 끝난 뒤 추가된 node는 다시 scale-down됐습니다."
   ],
-  "architecture": "Kasten backup Job\n   │ 여러 backup Pod/PVC 거의 동시 생성\n   ▼\nPVC A (Unbound로 남음)   PVC B (binding 먼저 완료)\n                              │\n                              ▼\n                     Scheduler evaluation\n                              │\n                              ▼\n                     Cluster Autoscaler scale-up 판단",
   "investigation": [
     "Kasten backup 작업 시점과 node scale-out 시점이 겹친다는 것을 먼저 확인했습니다.",
     "같은 시간대에 여러 backup Pod/PVC가 거의 동시에 생성되고 있었습니다.",
@@ -64,6 +63,14 @@
     {
       "label": "Cluster Autoscaler validation runbook",
       "path": "evidence/02-kubernetes-autoscaler-validation/docs/09_test_scenario_runbook.md"
+    }
+  ],
+  "diagrams": [
+    {
+      "diagram": "assets/diagrams/troubleshooting/autoscaler-pvc-race.svg",
+      "label": "Timeline",
+      "caption": "처음 의심한 Pod와 CA가 실제로 근거로 삼은 Pod가 다릅니다. 그 차이가 이 RCA의 전부입니다.",
+      "alt": "백업 작업으로 여러 Pod와 PVC가 동시에 생성되고, 바인딩이 먼저 끝난 인접 Pod를 근거로 Cluster Autoscaler가 scale-up을 결정한 뒤 백업 종료 후 scale-down되는 타임라인"
     }
   ]
 }

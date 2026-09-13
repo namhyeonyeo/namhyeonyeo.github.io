@@ -186,19 +186,67 @@ const notes = (v) => {
 
 const diagram = (t) => (t ? `<pre class="diagram" aria-label="architecture diagram">${esc(t)}</pre>` : '');
 
-// Generic project architecture renderer. Reads whatever shape the content
-// JSON provides — no project slug/filename is ever hardcoded here.
-//   { asIs: {...}, toBe: {...} }  -> side-by-side AS-IS / TO-BE comparison
+/* ---------------------------------------------------------------- diagrams */
+// Generic diagram renderer. The path always comes from content JSON — no
+// project slug or asset filename is ever hardcoded here.
+//
+// A diagram spec is { diagram, label, caption, alt } where `diagram` is a
+// repo-relative asset path. SVGs are inlined so they read the site's theme
+// tokens (var(--dg-*)) and follow light/dark without shipping two variants;
+// the original asset is still copied to dist/ and named in data-diagram-src.
+// Anything else falls back to <img>, and `diagramDark` overrides the asset
+// when a separate dark rendition is supplied.
+const inlineSvg = (src) => {
+  const file = join(ROOT, src.replace(/^\//, ''));
+  if (!existsSync(file)) return null;
+  return readFileSync(file, 'utf8')
+    .replace(/<\?xml[^>]*\?>\s*/g, '')
+    .replace(/<!DOCTYPE[^>]*>\s*/gi, '');
+};
+
+const diagramAssets = [];
+
+const diagramBody = (spec) => {
+  const src = spec.diagram;
+  const alt = spec.alt || spec.caption || spec.label || 'architecture diagram';
+  diagramAssets.push(src);
+  if (/\.svg$/i.test(src)) {
+    const svg = inlineSvg(src);
+    if (svg) return `<div class="diagram-frame" role="img" aria-label="${esc(alt)}">${svg}</div>`;
+    console.warn(`⚠ diagram asset missing: ${src}`);
+  }
+  return `<div class="diagram-frame"><img src="${url(src)}" alt="${esc(alt)}" loading="lazy"></div>`;
+};
+
+const figure = (spec, kind = '') => {
+  if (!spec || !spec.diagram) return '';
+  return `<figure class="diagram-figure${kind ? ' diagram-' + kind : ''}" data-diagram-src="${esc(spec.diagram)}">
+  ${spec.label ? `<figcaption class="diagram-label"><span class="diagram-tag">${esc(spec.label)}</span></figcaption>` : ''}
+  ${diagramBody(spec)}
+  ${spec.caption ? `<figcaption class="diagram-caption">${inline(spec.caption)}</figcaption>` : ''}
+</figure>`;
+};
+
+const figures = (list) => (Array.isArray(list) ? list.map((d) => figure(d)).join('') : '');
+
+// Project architecture. Prefers a real diagram asset; Mermaid remains as a
+// fallback for entries that have not been redrawn yet.
+//   { asIs: {...}, toBe: {...} }  -> AS-IS / TO-BE comparison
 //   { flow: {...} }               -> single data-flow / overview diagram
-//   { diagram: "...", notes: [] } -> legacy plain-text diagram (fallback)
-// Each panel object is { label, mermaid, caption }.
+//   { diagram: "...", notes: [] } -> legacy plain-text diagram
 const archPanel = (panel, kind) => {
-  if (!panel || !panel.mermaid) return '';
+  if (!panel) return '';
   const label = panel.label || (kind === 'as-is' ? 'AS-IS' : kind === 'to-be' ? 'TO-BE' : '');
-  const a11y = esc(panel.caption || label || 'architecture diagram');
-  return `<figure class="arch-panel arch-${kind}">
+  const a11y = esc(panel.alt || panel.caption || label || 'architecture diagram');
+  const body = panel.diagram
+    ? diagramBody({ ...panel, alt: a11y })
+    : panel.mermaid
+      ? `<div class="mermaid" role="img" aria-label="${a11y}">${esc(panel.mermaid)}</div>`
+      : '';
+  if (!body) return '';
+  return `<figure class="arch-panel arch-${kind}"${panel.diagram ? ` data-diagram-src="${esc(panel.diagram)}"` : ''}>
   <figcaption class="arch-label"><span class="arch-tag">${esc(label)}</span></figcaption>
-  <div class="mermaid" role="img" aria-label="${a11y}">${esc(panel.mermaid)}</div>
+  ${body}
   ${panel.caption ? `<figcaption class="arch-caption">${inline(panel.caption)}</figcaption>` : ''}
 </figure>`;
 };
@@ -206,11 +254,13 @@ const archPanel = (panel, kind) => {
 const archField = (arch) => {
   if (!arch) return '';
   if (arch.asIs && arch.toBe) {
-    return `<div class="arch-compare">${archPanel(arch.asIs, 'as-is')}${archPanel(arch.toBe, 'to-be')}</div>${bullets(arch.notes)}`;
+    const wide = arch.asIs.diagram || arch.toBe.diagram ? ' arch-stacked' : '';
+    return `<div class="arch-compare${wide}">${archPanel(arch.asIs, 'as-is')}${archPanel(arch.toBe, 'to-be')}</div>${bullets(arch.notes)}`;
   }
   if (arch.flow) {
     return `<div class="arch-compare arch-single">${archPanel(arch.flow, 'flow')}</div>${bullets(arch.notes)}`;
   }
+  if (arch.diagram) return figure(arch) + bullets(arch.notes);
   return diagram(arch.diagram) + bullets(arch.notes);
 };
 
@@ -340,7 +390,7 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
     .sort((a, b) => a.homeOrder - b.homeOrder)
     .map(
       (t) =>
-        `<li><a href="${url('tools/#' + t.slug)}"><span class="idx-cat">${esc(t.category)}</span><span class="idx-title">${esc(t.name)}${t.titleKo ? ` <span class="idx-title-ko">${esc(t.titleKo)}</span>` : ''}</span><span class="idx-sum">${esc(t.problem)}</span></a></li>`
+        `<li><a href="${url('tools/' + t.slug + '/')}"><span class="idx-cat">${esc(t.category)}</span><span class="idx-title">${esc(t.name)}${t.titleKo ? ` <span class="idx-title-ko">${esc(t.titleKo)}</span>` : ''}</span><span class="idx-sum">${esc(t.problem)}</span></a></li>`
     )
     .join('');
 
@@ -368,8 +418,14 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
       <tbody>${site.platformScope.clusters.map((c) => `<tr><td>${esc(c.env)}</td><td>${esc(c.structure)}</td><td>${esc(c.detail)}</td></tr>`).join('')}</tbody>
     </table>
   </div>
-  ${site.platformScope.diagram ? `<img class="scope-diagram" src="${url(site.platformScope.diagram)}" alt="망분리 Kubernetes 플랫폼 토폴로지">` : ''}
+  ${figure({ diagram: site.platformScope.diagram, alt: site.platformScope.diagramAlt || '망분리 Kubernetes 플랫폼 토폴로지', caption: site.platformScope.diagramCaption })}
   <p class="scope-lead">${inline(site.platformScope.implication)}</p>
+</section>` : '';
+
+  const platformStack = site.platformStack ? `
+<section class="home-section platform-stack">
+  <div class="section-kicker"><h2>${esc(site.platformStack.title)}</h2></div>
+  ${figure(site.platformStack)}
 </section>` : '';
 
   const readingGuide = site.readingGuide ? `
@@ -396,6 +452,7 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
   ${availability}
 </section>
 <section class="stats">${highlights}</section>
+${platformStack}
 ${platformScope}
 ${readingGuide}
 <section class="home-section">
@@ -567,7 +624,7 @@ ${field('Repository', p.related_repository ? `<p><a href="https://github.com/${e
 </header>
 ${field('Environment / 환경', tags(c.environment))}
 ${field('Symptoms / 현상', bullets(c.symptoms))}
-${field('Architecture / 구조', diagram(c.architecture))}
+${field('Architecture / 구조', figures(c.diagrams) || diagram(c.architecture))}
 ${field('Investigation / 조사', bullets(c.investigation))}
 ${field('Hypotheses / 가설', notes(c.hypotheses))}
 ${field('Evidence / 근거', bullets(c.evidence))}
@@ -591,6 +648,7 @@ ${field('Evidence / 관련 파일', evidenceLinks(c.evidence_links))}
   <p class="eyebrow"><span class="label">${esc(l.label)}</span> ${esc(l.category)} · ${esc(l.status)}</p>
   <h2>${esc(l.title)}</h2>
   ${para(l.objective)}
+  ${figures(l.diagrams)}
   <h3>Environment / 환경</h3>${tags(l.environment)}
   <h3>Implementation / 구현</h3>${bullets(l.implementation)}
   <h3>Validation / 검증</h3>${bullets(l.validation)}
@@ -623,10 +681,17 @@ ${items}`,
 // compact utilities table. Both come from the same content/tools/*.json set.
 {
   const codeBlock = (label, body) =>
-    body ? `<div class="tool-code"><p class="tool-code-label">${esc(label)}</p><pre class="code"><code>${esc(body)}</code></pre></div>` : '';
+    body
+      ? `<div class="tool-code">${label ? `<p class="tool-code-label">${esc(label)}</p>` : ''}<pre class="code"><code>${esc(body)}</code></pre></div>`
+      : '';
 
   const featured = tools.filter((t) => t.featured !== false);
   const utilities = tools.filter((t) => t.featured === false);
+
+  // Index cards stay short — problem, a few capability chips, status — and
+  // link through to the tool's own page.
+  const chips = (v) =>
+    !v || !v.length ? '' : `<ul class="chips">${v.slice(0, 4).map((c) => `<li>${esc(c)}</li>`).join('')}</ul>`;
 
   const cards = featured
     .map(
@@ -634,21 +699,44 @@ ${items}`,
 <article class="tool-card" id="${esc(t.slug)}">
   <header class="tool-head">
     <p class="eyebrow">${esc(t.category)}${t.language ? ` · ${esc(t.language)}` : ''}${t.version ? ` · ${esc(t.version)}` : ''}</p>
-    <h2>${esc(t.name)}${t.titleKo ? ` <span class="tool-title-ko">${esc(t.titleKo)}</span>` : ''}</h2>
+    <h2><a href="${url('tools/' + t.slug + '/')}">${esc(t.name)}</a>${t.titleKo ? ` <span class="tool-title-ko">${esc(t.titleKo)}</span>` : ''}</h2>
     ${t.sourceStatus ? `<p class="tool-source-status">${esc(t.sourceStatus)}</p>` : ''}
   </header>
   ${para(t.problem)}
-  ${t.whatItDoes ? `<h3>What it does / 하는 일</h3>${bullets(t.whatItDoes)}` : ''}
-  ${codeBlock('Usage / 사용 예', t.usage)}
-  ${codeBlock('Output / 출력 예', t.output)}
-  ${t.safety ? `<h3>Safety / 운영 안전장치</h3>${bullets(t.safety)}` : ''}
-  ${t.evidence_links ? `<h3>Source / Evidence</h3>${evidenceLinks(t.evidence_links)}` : ''}
-  ${t.related_project && projects.find((p) => p.slug === t.related_project)
-    ? `<p class="more"><a href="${url('projects/' + t.related_project + '/')}">관련 프로젝트 보기</a></p>`
-    : ''}
+  ${chips(t.capabilities || t.whatItDoes)}
+  <p class="more"><a href="${url('tools/' + t.slug + '/')}">자세히 보기 →</a></p>
 </article>`
     )
     .join('');
+
+  // Tool detail pages: why it exists → workflow diagram → what it does →
+  // example → output → safety → implementation → evidence.
+  for (const t of featured) {
+    const related = t.related_project && projects.find((p) => p.slug === t.related_project);
+    const main = `
+<header class="page-head detail tool-detail-head">
+  <p class="eyebrow">${esc(t.category)}${t.language ? ` · ${esc(t.language)}` : ''}${t.version ? ` · ${esc(t.version)}` : ''}</p>
+  <h1>${esc(t.name)}${t.titleKo ? ` — ${esc(t.titleKo)}` : ''}</h1>
+  ${t.subtitle ? `<p class="tool-subtitle">${esc(t.subtitle)}</p>` : ''}
+  ${t.lead ? `<p class="lede">${inline(t.lead)}</p>` : ''}
+  ${t.sourceStatus ? `<p class="evidence-status">${esc(t.sourceStatus)}</p>` : ''}
+</header>
+${field('반복되던 작업', para(t.problem) + (t.history ? para(t.history) : ''))}
+${field('사용 흐름 / Workflow', figures(t.diagrams))}
+${field('주요 기능 / What it does', bullets(t.whatItDoes) + chips(t.capabilities))}
+${field('Example / 사용 예', codeBlock('', t.usage))}
+${field('Output / 출력', codeBlock('', t.output))}
+${field('Safety / 운영 안전장치', bullets(t.safety))}
+${field('Implementation / 구현 메모', bullets(t.implementation))}
+${field('Evidence', evidenceLinks(t.evidence_links) + (related ? `<p class="more"><a href="${url('projects/' + t.related_project + '/')}">관련 프로젝트 보기</a></p>` : ''))}
+<p class="back"><a href="${url('tools/')}">← Operations Toolkit</a></p>`;
+    page({
+      path: `tools/${t.slug}/`,
+      title: `${t.name}${t.titleKo ? ' — ' + t.titleKo : ''}`,
+      description: t.subtitle || t.problem,
+      main,
+    });
+  }
 
   const utilityRows = utilities
     .map(

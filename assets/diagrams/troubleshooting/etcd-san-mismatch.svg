@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 340" role="img"
+     aria-labelledby="etcd-title etcd-desc" class="dg">
+  <title id="etcd-title">Guest cluster API 장애의 의존 경로</title>
+  <desc id="etcd-desc">분리돼 있어야 할 DHCP 영역의 주소 할당 문제가 control plane VM의 주소를 바꾸고, 그 주소가 etcd peer 인증서의 SAN과 어긋나면서 etcd 클러스터링이 실패했습니다. 그 결과 kube-apiserver가 응답하지 못하고 Cluster API 작업이 진행되지 않았습니다. 증상은 API timeout이었지만 원인은 네 계층 아래에 있었습니다.</desc>
+
+  <style>
+    .dg-t { font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif; }
+    .dg-box { fill: var(--dg-surface, #fff); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-box-r { fill: var(--dg-rca-fill, #FBECEB); stroke: var(--dg-rca, #C2413B); stroke-width: 1.5; }
+    .dg-box-2 { fill: var(--dg-surface-2, #F1F5F9); stroke: var(--dg-border, #CBD5E1); stroke-width: 1; }
+    .dg-label { fill: var(--dg-text, #0F172A); font-size: 13.5px; font-weight: 600; }
+    .dg-mono { fill: var(--dg-muted, #64748B); font-size: 11px;
+               font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .dg-line-r { stroke: var(--dg-rca, #C2413B); stroke-width: 2; fill: none; }
+    .dg-tag { fill: var(--dg-muted, #64748B); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+    .dg-root { fill: var(--dg-rca, #C2413B); font-size: 12px; font-weight: 600; }
+    .dg-note { fill: var(--dg-muted, #64748B); font-size: 12px; font-style: italic; }
+  </style>
+  <defs>
+    <marker id="ed-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-rca, #C2413B)"/>
+    </marker>
+  </defs>
+
+  <g class="dg-t">
+    <text x="24" y="34" class="dg-tag">원인 ──────────────────────────────────────────────────────────► 증상</text>
+
+    <rect x="24" y="56" width="150" height="80" rx="8" class="dg-box-r"/>
+    <text x="44" y="84" class="dg-label">DHCP 영역</text>
+    <text x="44" y="104" class="dg-mono">격리됐어야 할</text>
+    <text x="44" y="122" class="dg-mono">주소 할당 충돌</text>
+    <text x="44" y="156" class="dg-root">ROOT CAUSE</text>
+
+    <path d="M 174 96 L 206 96" class="dg-line-r" marker-end="url(#ed-arrow)"/>
+
+    <rect x="208" y="56" width="150" height="80" rx="8" class="dg-box"/>
+    <text x="228" y="84" class="dg-label">Control Plane VM</text>
+    <text x="228" y="104" class="dg-mono">주소가 예상과</text>
+    <text x="228" y="122" class="dg-mono">달라짐</text>
+
+    <path d="M 358 96 L 390 96" class="dg-line-r" marker-end="url(#ed-arrow)"/>
+
+    <rect x="392" y="56" width="150" height="80" rx="8" class="dg-box"/>
+    <text x="412" y="84" class="dg-label">etcd peer 인증서</text>
+    <text x="412" y="104" class="dg-mono">SAN 불일치</text>
+    <text x="412" y="122" class="dg-mono">TLS 검증 실패</text>
+
+    <path d="M 542 96 L 574 96" class="dg-line-r" marker-end="url(#ed-arrow)"/>
+
+    <rect x="576" y="56" width="130" height="80" rx="8" class="dg-box"/>
+    <text x="596" y="84" class="dg-label">etcd</text>
+    <text x="596" y="104" class="dg-mono">clustering</text>
+    <text x="596" y="122" class="dg-mono">실패</text>
+
+    <path d="M 706 96 L 738 96" class="dg-line-r" marker-end="url(#ed-arrow)"/>
+
+    <rect x="740" y="56" width="116" height="80" rx="8" class="dg-box-2"/>
+    <text x="760" y="84" class="dg-label">kube-</text>
+    <text x="760" y="102" class="dg-label">apiserver</text>
+    <text x="760" y="122" class="dg-mono">무응답</text>
+
+    <path d="M 798 136 L 798 176" class="dg-line-r" marker-end="url(#ed-arrow)"/>
+    <rect x="700" y="178" width="156" height="60" rx="8" class="dg-box-2"/>
+    <text x="720" y="204" class="dg-label">Cluster API</text>
+    <text x="720" y="224" class="dg-mono">여기서 처음 보임</text>
+
+    <rect x="24" y="196" width="640" height="66" rx="8" class="dg-box"/>
+    <text x="48" y="222" class="dg-label">조사 순서</text>
+    <text x="48" y="244" class="dg-mono">API timeout에서 멈추지 않고 DHCP → PKI → etcd → API 의존 경로를 거꾸로 내려감</text>
+
+    <text x="24" y="300" class="dg-note">증상이 보이는 계층과 원인이 있는 계층이 네 칸 떨어져 있었습니다.</text>
+  </g>
+</svg>

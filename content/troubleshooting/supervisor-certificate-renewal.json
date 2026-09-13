@@ -31,7 +31,7 @@
     "Supervisor core component와 etcd health를 별도 확인했습니다.",
     "Guest control-plane replacement 이후 registration 상태를 재검증했습니다."
   ],
-  "root_cause": "단일 원인으로 모든 downstream 이벤트를 묶기보다 supervisor certificate-renewal 이슈와 guest-cluster symptom chain을 분리해 복구·검증해야 했던 복합 장애였습니다.",
+  "root_cause": "Supervisor 인증서 갱신 문제와 게스트 클러스터 쪽 증상이 같은 시간대에 겹쳐 있었습니다. 하나의 원인으로 전부 설명하려다 보면 복구 순서를 틀리게 되어서, 인증서 갱신과 guest control-plane 등록 실패를 별도 사건으로 놓고 각각 복구·검증했습니다.",
   "resolution": [
     "지원 절차에 따른 certificate renewal",
     "영향받은 control-plane component health recovery",
@@ -45,7 +45,7 @@
     "복합 장애 RCA에서 correlation과 causation을 분리하고 dependency별 validation point를 남기도록 했습니다."
   ],
   "lessons": [
-    "큰 장애에서는 하나의 root cause로 모든 현상을 설명하려는 유혹을 피하고 각 dependency를 독립적으로 검증해야 합니다."
+    "큰 장애일수록 한 줄로 정리하고 싶어집니다. 이 건은 나눠서 복구한 것이 결과적으로 빨랐습니다."
   ],
   "evidence_links": [
     {

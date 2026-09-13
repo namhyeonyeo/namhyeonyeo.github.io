@@ -24,9 +24,10 @@
   ],
   "architecture": {
     "flow": {
-      "label": "Data Flow",
-      "mermaid": "flowchart LR\n  CR[\"HTTPProxy / Kubernetes CR\"] -->|kubectl / jq| CJ[\"Collection CronJob\"]\n  CJ -->|push| PG[\"Pushgateway\"]\n  PG -->|scrape| PROM[\"Prometheus\"]\n  PROM --> DASH[\"PromQL / Dashboard / 운영 가시성\"]",
-      "caption": "HTTPProxy CRD 상태를 CronJob이 주기적으로 읽어 Pushgateway로 밀어넣고, Prometheus가 scrape해 PromQL로 조회 가능하게 만드는 흐름입니다."
+      "label": "Data flow",
+      "diagram": "assets/diagrams/projects/ingress-observability-flow.svg",
+      "caption": "HTTPProxy CR을 CronJob이 읽어 metric으로 바꾸고 Pushgateway로 보냅니다. 기존 Prometheus 구성은 건드리지 않았습니다.",
+      "alt": "HTTPProxy CR을 CronJob이 kubectl과 jq로 읽어 contour_httpproxy_info 지표로 변환하고, Pushgateway를 거쳐 Prometheus가 scrape한 뒤 PromQL로 조회하는 데이터 흐름"
     },
     "notes": [
       "원본 수집 스크립트는 내부 endpoint가 섞여 있어 올리지 않았고, 같은 흐름을 재현 예제로 공개했습니다."
