@@ -107,6 +107,23 @@
   --dg-rca: #B83B35;
   --dg-rca-fill: #FBECEB;
 
+  /* diagram-design plugin skin — semantic roles mapped to this site's brand.
+     Exported SVGs reference these, so one file serves light, dark and print. */
+  --dg-paper: var(--surface);
+  --dg-paper-2: var(--surface-subtle);
+  --dg-ink: var(--dg-text);
+  --dg-soft: #5B6879;
+  --dg-rule-solid: #CBD5E1;
+  --dg-accent-tint: rgba(15, 118, 110, .08);
+  --dg-link: #2563EB;
+  --dg-node: #FFFFFF;
+  --dg-wash-1: rgba(15, 23, 42, .02);
+  --dg-wash-2: rgba(15, 23, 42, .05);
+  --dg-wash-3: rgba(15, 23, 42, .03);
+  --dg-input: rgba(71, 85, 105, .10);
+  --dg-rule-wash: rgba(15, 23, 42, .10);
+  --dg-rule-strong: rgba(15, 23, 42, .30);
+
   /* aliases used by the pre-existing topology SVG so it themes like the rest */
   --paper: var(--dg-surface);
   --paper-raised: var(--dg-surface);
@@ -160,6 +177,18 @@
   --dg-legacy-fill: #1B2530;
   --dg-rca: #F87171;
   --dg-rca-fill: #3A1F1C;
+
+  --dg-soft: #9AA8B6;
+  --dg-rule-solid: #35424F;
+  --dg-accent-tint: rgba(91, 192, 190, .12);
+  --dg-link: #60A5FA;
+  --dg-node: #1B2530;
+  --dg-wash-1: rgba(230, 237, 243, .04);
+  --dg-wash-2: rgba(230, 237, 243, .07);
+  --dg-wash-3: rgba(230, 237, 243, .05);
+  --dg-input: rgba(154, 168, 182, .14);
+  --dg-rule-wash: rgba(230, 237, 243, .14);
+  --dg-rule-strong: rgba(230, 237, 243, .34);
 }
 
 html { color-scheme: light; }
@@ -233,6 +262,19 @@ html { color-scheme: light; }
     --dg-legacy-fill: #f4f5f6 !important;
     --dg-rca: #A8312C !important;
     --dg-rca-fill: #fbeceb !important;
+    --dg-paper: #ffffff !important;
+    --dg-paper-2: #f4f5f6 !important;
+    --dg-ink: #111111 !important;
+    --dg-soft: #555555 !important;
+    --dg-rule-solid: #bbbbbb !important;
+    --dg-accent-tint: #eef5f4 !important;
+    --dg-node: #ffffff !important;
+    --dg-wash-1: rgba(17,17,17,.03) !important;
+    --dg-wash-2: rgba(17,17,17,.06) !important;
+    --dg-wash-3: rgba(17,17,17,.04) !important;
+    --dg-input: rgba(17,17,17,.08) !important;
+    --dg-rule-wash: rgba(17,17,17,.12) !important;
+    --dg-rule-strong: rgba(17,17,17,.32) !important;
   }
   html { color-scheme: light !important; }
   .theme-toggle { display: none !important; }

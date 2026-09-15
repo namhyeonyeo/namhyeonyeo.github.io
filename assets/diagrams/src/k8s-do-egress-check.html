@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>k8s-do egress-check 증거 수집</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dg-paper:       #F8FAFC;
+      --dg-paper-2:     #F1F5F9;
+      --dg-ink:         #0F172A;
+      --dg-muted:       #475569;
+      --dg-soft:        #5B6879;
+      --dg-rule:        rgba(15,23,42,0.12);
+      --dg-rule-solid:  #CBD5E1;
+      --dg-accent:      #0F766E;
+      --dg-accent-tint: rgba(15,118,110,0.08);
+      --dg-link:        #2563EB;
+      --font-sans:  'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif KR', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--dg-paper);
+      color: var(--dg-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--dg-muted); margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15;
+      color: var(--dg-ink); margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Sequence · Diagram Design</p>
+    <h1>egress-check 증거 수집</h1>
+
+    <svg viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="k8sdo-egress-title k8sdo-egress-desc">
+      <title id="k8sdo-egress-title">egress-check 증거 수집</title>
+      <desc id="k8sdo-egress-desc">k8s-do가 Egress 노드에 접속해 IP 소유와 경로를 확인하고 패킷·conntrack 수집을 시작한 뒤, 테스트 Pod에서 목적지로 TCP 연결을 만들어 SNAT 출발지와 리턴 트래픽을 같은 시점의 증거로 대조하고 판정을 내리는 순서.</desc>
+      <defs>
+        <marker id="k8sdo-egress-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--dg-muted, #475569)"/></marker>
+        <marker id="k8sdo-egress-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--dg-accent, #0F766E)"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="var(--dg-paper, #F8FAFC)"/>
+
+      <!-- ============ lifelines (dashed, behind everything) ============ -->
+      <line x1="140" y1="88" x2="140" y2="520" stroke="var(--dg-rule-solid, #CBD5E1)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="380" y1="88" x2="380" y2="520" stroke="var(--dg-rule-solid, #CBD5E1)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="620" y1="88" x2="620" y2="520" stroke="var(--dg-rule-solid, #CBD5E1)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="860" y1="88" x2="860" y2="520" stroke="var(--dg-rule-solid, #CBD5E1)" stroke-width="1" stroke-dasharray="4,4"/>
+
+      <!-- ============ activation bars ============ -->
+      <rect x="136" y="132" width="8" height="352" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="0.8"/>
+      <rect x="376" y="216" width="8" height="64" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="0.8"/>
+      <rect x="616" y="132" width="8" height="280" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="0.8"/>
+      <rect x="856" y="304" width="8" height="60" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="0.8"/>
+
+      <!-- ============ messages (arrows before boxes) ============ -->
+      <!-- M1 k8s-do → egress node : SSH -->
+      <line x1="144" y1="140" x2="612" y2="140" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-egress-arrow)"/>
+      <rect x="336" y="120" width="84" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="378" y="129" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">SSH · IP OWNER</text>
+
+      <!-- M2 k8s-do → egress node : capture start -->
+      <line x1="144" y1="184" x2="612" y2="184" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-egress-arrow)"/>
+      <rect x="332" y="164" width="92" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="378" y="173" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">TCPDUMP · CONNTRACK</text>
+
+      <!-- M3 k8s-do → test pod : exec -->
+      <line x1="144" y1="228" x2="372" y2="228" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-egress-arrow)"/>
+      <rect x="222" y="208" width="72" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="258" y="217" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">EXEC TCP</text>
+
+      <!-- M4 test pod → egress node : pod traffic -->
+      <line x1="384" y1="268" x2="612" y2="268" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-egress-arrow)"/>
+      <rect x="462" y="248" width="76" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="500" y="257" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">POD TRAFFIC</text>
+
+      <!-- M5 egress node → destination : SNAT (headline, accent) -->
+      <line x1="624" y1="312" x2="852" y2="312" stroke="var(--dg-accent, #0F766E)" stroke-width="1.2" marker-end="url(#k8sdo-egress-arrow-accent)"/>
+      <rect x="700" y="292" width="76" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="738" y="301" fill="var(--dg-accent, #0F766E)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">SNAT SOURCE</text>
+
+      <!-- M6 destination → egress node : return (dashed, filled marker) -->
+      <line x1="852" y1="356" x2="628" y2="356" stroke="var(--dg-muted, #475569)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#k8sdo-egress-arrow)"/>
+      <rect x="712" y="336" width="56" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="740" y="345" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">RETURN</text>
+
+      <!-- M7 egress node → k8s-do : evidence (dashed return) -->
+      <line x1="612" y1="400" x2="148" y2="400" stroke="var(--dg-muted, #475569)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#k8sdo-egress-arrow)"/>
+      <rect x="344" y="380" width="72" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="380" y="389" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">EVIDENCE</text>
+
+      <!-- M8 k8s-do self : verdict (accent) -->
+      <path d="M 144,444 H 192 Q 200,444 200,452 V 468 Q 200,476 192,476 H 152" fill="none" stroke="var(--dg-accent, #0F766E)" stroke-width="1.2" marker-end="url(#k8sdo-egress-arrow-accent)"/>
+      <text x="216" y="464" fill="var(--dg-accent, #0F766E)" font-size="8" font-family="var(--font-mono, monospace)" letter-spacing="0.06em">PASS / FAIL / WARN / CRITICAL</text>
+
+      <!-- ============ actors ============ -->
+      <rect x="60" y="40" width="160" height="48" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="60" y="40" width="160" height="48" rx="6" fill="var(--dg-accent-tint, rgba(15,118,110,0.08))" stroke="var(--dg-accent, #0F766E)" stroke-width="1"/>
+      <text x="140" y="64" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">k8s-do</text>
+      <text x="140" y="80" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">CLI</text>
+
+      <rect x="300" y="40" width="160" height="48" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="300" y="40" width="160" height="48" rx="6" fill="rgba(71,85,105,0.10)" stroke="var(--dg-soft, #5B6879)" stroke-width="1"/>
+      <text x="380" y="64" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Test Pod</text>
+      <text x="380" y="80" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">one Running match</text>
+
+      <rect x="540" y="40" width="160" height="48" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="540" y="40" width="160" height="48" rx="6" fill="#FFFFFF" stroke="var(--dg-ink, #0F172A)" stroke-width="1"/>
+      <text x="620" y="64" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Egress Node</text>
+      <text x="620" y="80" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">route · arp · capture</text>
+
+      <rect x="780" y="40" width="160" height="48" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="780" y="40" width="160" height="48" rx="6" fill="rgba(15,23,42,0.03)" stroke="rgba(15,23,42,0.30)" stroke-width="1"/>
+      <text x="860" y="64" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Destination</text>
+      <text x="860" y="80" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">198.51.100.60:22</text>
+
+      <!-- ============ legend : horizontal bottom strip ============ -->
+      <line x1="60" y1="556" x2="940" y2="556" stroke="rgba(15,23,42,0.10)" stroke-width="0.8"/>
+      <text x="60" y="576" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" letter-spacing="0.14em">LEGEND</text>
+
+      <line x1="156" y1="572" x2="188" y2="572" stroke="var(--dg-muted, #475569)" stroke-width="1.2"/>
+      <text x="196" y="576" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">CALL</text>
+
+      <line x1="256" y1="572" x2="288" y2="572" stroke="var(--dg-muted, #475569)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="296" y="576" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">RETURN</text>
+
+      <line x1="372" y1="572" x2="404" y2="572" stroke="var(--dg-accent, #0F766E)" stroke-width="1.2"/>
+      <text x="412" y="576" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">HEADLINE PATH</text>
+
+      <rect x="540" y="566" width="8" height="12" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="0.8"/>
+      <text x="560" y="576" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">ACTIVE</text>
+
+      <text x="660" y="576" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)">ARP ALONE DOES NOT DISPROVE A DUPLICATE IP</text>
+    </svg>
+  </div>
+</body>
+</html>

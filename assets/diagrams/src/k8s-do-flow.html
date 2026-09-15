@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>k8s-do 노드 작업 흐름</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dg-paper:       #F8FAFC;
+      --dg-paper-2:     #F1F5F9;
+      --dg-ink:         #0F172A;
+      --dg-muted:       #475569;
+      --dg-soft:        #5B6879;
+      --dg-rule:        rgba(15,23,42,0.12);
+      --dg-rule-solid:  #CBD5E1;
+      --dg-accent:      #0F766E;
+      --dg-accent-tint: rgba(15,118,110,0.08);
+      --dg-link:        #2563EB;
+      --font-sans:  'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif KR', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--dg-paper);
+      color: var(--dg-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--dg-muted); margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15;
+      color: var(--dg-ink); margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Diagram Design</p>
+    <h1>k8s-do 노드 작업 흐름</h1>
+
+    <svg viewBox="0 0 1000 812" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="k8sdo-flow-title k8sdo-flow-desc">
+      <title id="k8sdo-flow-title">k8s-do 노드 작업 흐름</title>
+      <desc id="k8sdo-flow-desc">Kubeconfig 디렉터리 또는 Supervisor API에서 클러스터를 찾고, Kubernetes API로 노드 목록을 받아 이름·IP·index로 대상 노드 하나를 고른 뒤, 그 노드에 대해 SSH 접속과 진단 리포트, Egress 경로 검증을 실행하는 CLI 흐름.</desc>
+      <defs>
+        <marker id="k8sdo-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--dg-muted, #475569)"/></marker>
+        <marker id="k8sdo-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--dg-accent, #0F766E)"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="var(--dg-paper, #F8FAFC)"/>
+
+      <!-- ============ zones (before arrows and nodes) ============ -->
+      <rect x="140" y="128" width="720" height="328" rx="8" fill="rgba(15,23,42,0.02)" stroke="rgba(15,23,42,0.10)" stroke-width="0.8"/>
+      <rect x="440" y="132" width="120" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="500" y="141" fill="rgba(15,23,42,0.40)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.14em">RESOLVE</text>
+
+      <!-- ============ arrows (drawn before boxes) ============ -->
+      <!-- inputs → cluster discovery : fanned attach points 452 / 548 -->
+      <path d="M 320,104 V 156 Q 320,164 328,164 H 444 Q 452,164 452,172 V 192" fill="none" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow)"/>
+      <path d="M 680,104 V 156 Q 680,164 672,164 H 556 Q 548,164 548,172 V 192" fill="none" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow)"/>
+
+      <!-- cluster discovery → kubernetes api -->
+      <path d="M 500,256 V 292" fill="none" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow)"/>
+      <!-- kubernetes api → node inventory -->
+      <path d="M 500,348 V 384" fill="none" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow)"/>
+      <!-- node inventory → target selection -->
+      <path d="M 500,464 V 512" fill="none" stroke="var(--dg-accent, #0F766E)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow-accent)"/>
+
+      <!-- target selection → three actions : fanned attach points 388 / 500 / 612 -->
+      <path d="M 388,576 V 604 Q 388,612 380,612 H 228 Q 220,612 220,620 V 648" fill="none" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow)"/>
+      <path d="M 500,576 V 648" fill="none" stroke="var(--dg-muted, #475569)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow)"/>
+      <path d="M 612,576 V 604 Q 612,612 620,612 H 772 Q 780,612 780,620 V 648" fill="none" stroke="var(--dg-accent, #0F766E)" stroke-width="1.2" marker-end="url(#k8sdo-flow-arrow-accent)"/>
+
+      <!-- arrow labels : mask 12px tall, 6px gap above stroke -->
+      <rect x="424" y="468" width="152" height="12" rx="2" fill="var(--dg-paper, #F8FAFC)"/>
+      <text x="500" y="477" fill="var(--dg-soft, #5B6879)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.06em">NAME / IP / INDEX</text>
+
+      <!-- ============ nodes ============ -->
+      <!-- inputs -->
+      <rect x="200" y="40" width="240" height="64" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="200" y="40" width="240" height="64" rx="6" fill="rgba(71,85,105,0.10)" stroke="var(--dg-soft, #5B6879)" stroke-width="1"/>
+      <rect x="208" y="48" width="44" height="12" rx="2" fill="transparent" stroke="rgba(91,104,121,0.40)" stroke-width="0.8"/>
+      <text x="230" y="57" fill="rgba(91,104,121,0.80)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.08em">FILE</text>
+      <text x="320" y="80" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Kubeconfig Directory</text>
+      <text x="320" y="96" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">static · filename = cluster</text>
+
+      <rect x="560" y="40" width="240" height="64" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="560" y="40" width="240" height="64" rx="6" fill="rgba(71,85,105,0.10)" stroke="var(--dg-soft, #5B6879)" stroke-width="1"/>
+      <rect x="568" y="48" width="44" height="12" rx="2" fill="transparent" stroke="rgba(91,104,121,0.40)" stroke-width="0.8"/>
+      <text x="590" y="57" fill="rgba(91,104,121,0.80)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="680" y="80" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Supervisor API</text>
+      <text x="680" y="96" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">supervisor · ns/cluster</text>
+
+      <!-- cluster discovery -->
+      <rect x="360" y="192" width="280" height="64" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="360" y="192" width="280" height="64" rx="6" fill="#FFFFFF" stroke="var(--dg-ink, #0F172A)" stroke-width="1"/>
+      <text x="500" y="228" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Cluster Discovery</text>
+      <text x="500" y="244" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">static · supervisor · hybrid</text>
+
+      <!-- kubernetes api -->
+      <rect x="360" y="292" width="280" height="56" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="360" y="292" width="280" height="56" rx="6" fill="#FFFFFF" stroke="var(--dg-ink, #0F172A)" stroke-width="1"/>
+      <text x="500" y="320" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Kubernetes API</text>
+      <text x="500" y="336" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">get nodes · 20s cache · stale fallback</text>
+
+      <!-- node inventory (store) -->
+      <rect x="280" y="384" width="440" height="80" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="280" y="384" width="440" height="80" rx="6" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="1"/>
+      <rect x="288" y="392" width="72" height="12" rx="2" fill="transparent" stroke="rgba(71,85,105,0.40)" stroke-width="0.8"/>
+      <text x="324" y="401" fill="rgba(71,85,105,0.80)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.08em">INVENTORY</text>
+      <text x="500" y="428" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Node Inventory</text>
+      <text x="500" y="448" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">NODE · INTERNAL-IP · STATUS · SCHEDULING · VERSION</text>
+
+      <!-- target selection : FOCAL 1 -->
+      <rect x="280" y="512" width="440" height="64" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="280" y="512" width="440" height="64" rx="6" fill="var(--dg-accent-tint, rgba(15,118,110,0.08))" stroke="var(--dg-accent, #0F766E)" stroke-width="1"/>
+      <text x="500" y="544" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">Target Selection</text>
+      <text x="500" y="564" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">fzf · bash completion · cluster-scoped check</text>
+
+      <!-- actions -->
+      <rect x="120" y="648" width="200" height="72" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="120" y="648" width="200" height="72" rx="6" fill="#FFFFFF" stroke="var(--dg-ink, #0F172A)" stroke-width="1"/>
+      <rect x="128" y="656" width="36" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.40)" stroke-width="0.8"/>
+      <text x="146" y="665" fill="rgba(15,23,42,0.80)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.08em">SSH</text>
+      <text x="220" y="692" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">SSH / check</text>
+      <text x="220" y="708" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">publickey only</text>
+
+      <rect x="400" y="648" width="200" height="72" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="400" y="648" width="200" height="72" rx="6" fill="#FFFFFF" stroke="var(--dg-ink, #0F172A)" stroke-width="1"/>
+      <rect x="408" y="656" width="52" height="12" rx="2" fill="transparent" stroke="rgba(15,23,42,0.40)" stroke-width="0.8"/>
+      <text x="434" y="665" fill="rgba(15,23,42,0.80)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.08em">REPORT</text>
+      <text x="500" y="692" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">doctor</text>
+      <text x="500" y="708" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">API state + OS addr/route</text>
+
+      <!-- egress-check : FOCAL 2 -->
+      <rect x="680" y="648" width="200" height="72" rx="6" fill="var(--dg-paper, #F8FAFC)"/>
+      <rect x="680" y="648" width="200" height="72" rx="6" fill="var(--dg-accent-tint, rgba(15,118,110,0.08))" stroke="var(--dg-accent, #0F766E)" stroke-width="1"/>
+      <rect x="688" y="656" width="64" height="12" rx="2" fill="transparent" stroke="rgba(15,118,110,0.40)" stroke-width="0.8"/>
+      <text x="720" y="665" fill="rgba(15,118,110,0.90)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle" letter-spacing="0.08em">EVIDENCE</text>
+      <text x="780" y="692" fill="var(--dg-ink, #0F172A)" font-size="12" font-weight="600" font-family="var(--font-sans, sans-serif)" text-anchor="middle">egress-check</text>
+      <text x="780" y="708" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" text-anchor="middle">SNAT · return path</text>
+
+      <!-- ============ legend : horizontal bottom strip ============ -->
+      <line x1="120" y1="752" x2="880" y2="752" stroke="rgba(15,23,42,0.10)" stroke-width="0.8"/>
+      <text x="120" y="772" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="216" y="760" width="16" height="12" rx="2" fill="rgba(71,85,105,0.10)" stroke="var(--dg-soft, #5B6879)" stroke-width="1"/>
+      <text x="240" y="770" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">INPUT SOURCE</text>
+
+      <rect x="360" y="760" width="16" height="12" rx="2" fill="#FFFFFF" stroke="var(--dg-ink, #0F172A)" stroke-width="1"/>
+      <text x="384" y="770" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">CLI STEP</text>
+
+      <rect x="480" y="760" width="16" height="12" rx="2" fill="rgba(15,23,42,0.05)" stroke="var(--dg-muted, #475569)" stroke-width="1"/>
+      <text x="504" y="770" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">CACHED STATE</text>
+
+      <rect x="632" y="760" width="16" height="12" rx="2" fill="var(--dg-accent-tint, rgba(15,118,110,0.08))" stroke="var(--dg-accent, #0F766E)" stroke-width="1"/>
+      <text x="656" y="770" fill="var(--dg-muted, #475569)" font-size="8" font-family="var(--font-mono, monospace)">FOCAL</text>
+    </svg>
+  </div>
+</body>
+</html>
