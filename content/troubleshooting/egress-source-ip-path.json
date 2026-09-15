@@ -1,6 +1,6 @@
 {
   "slug": "egress-source-ip-path",
-  "order": 2,
+  "order": 6,
   "title": "Egress Source IP 검증 / 방화벽에 등록할 주소 확정",
   "date": "2023.09 – 2024.02",
   "category": "Networking / CNI",
@@ -63,5 +63,12 @@
       "caption": "설정이 적용됐다는 것과 그 주소로 나간다는 것은 다른 사실이어서, 반대편 캡처를 근거로 삼았습니다.",
       "alt": "라벨이 붙은 Pod의 트래픽이 Antrea Egress 정책으로 Egress 노드에서 고정 IP로 SNAT되어 방화벽을 지나 외부 시스템에 도달하고, 반대편 서버의 tcpdump로 출발지 주소를 확인하는 경로"
     }
-  ]
+  ],
+  "card": {
+    "kind": "경로 검증",
+    "headline": "방화벽에 등록할 출발지 주소 확정",
+    "symptom": "Egress 정책은 적용됐는데, 그 Pod가 실제로 어떤 주소로 나가는지는 확신할 수 없었습니다.",
+    "domain": "Antrea Egress · SNAT 지점 · 노드 라우팅",
+    "evidence": "목적지 서버에서 잡은 tcpdump의 출발지 주소"
+  }
 }

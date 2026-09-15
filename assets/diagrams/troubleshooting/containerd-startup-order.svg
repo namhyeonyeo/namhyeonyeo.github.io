@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" role="img"
+     aria-labelledby="containerd-startup-order-title containerd-startup-order-desc">
+  <title id="containerd-startup-order-title">containerd 기동 순서 — filesystem mount 타임라인</title>
+  <desc id="containerd-startup-order-desc">노드 reboot 이후 containerd가 먼저 기동하고, 비정상 종료 뒤 fsck가 정리되는 동안 데이터 filesystem mount가 약 10초 늦게 끝납니다. 그 사이 containerd가 기대한 데이터 경로가 비어 있어 workload가 기동하지 못했고, mount 완료 후 containerd를 재시작하자 데이터를 정상 인식했습니다. 표시된 간격 중 실제 로그로 확인된 값은 약 10초 구간뿐입니다.</desc>
+
+  <defs>
+    <marker id="cso-tip" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="var(--dg-line, #94A3B8)"/>
+    </marker>
+  </defs>
+
+  <g font-family="'Pretendard Variable', Pretendard, 'Noto Sans KR', system-ui, sans-serif">
+
+    <!-- the ordering gap: drawn first, behind the baseline -->
+    <rect x="232" y="240" width="288" height="16" rx="4"
+          fill="var(--dg-rca-fill, #FBECEB)" stroke="var(--dg-rca, #B83B35)" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- baseline + event drops -->
+    <line x1="72" y1="264" x2="888" y2="264" stroke="var(--dg-line, #94A3B8)" stroke-width="1.2" marker-end="url(#cso-tip)"/>
+
+    <line x1="112" y1="260" x2="112" y2="224" stroke="var(--dg-rule-wash, rgba(15,23,42,.10))" stroke-width="0.8"/>
+    <line x1="232" y1="268" x2="232" y2="304" stroke="var(--dg-rule-wash, rgba(15,23,42,.10))" stroke-width="0.8"/>
+    <line x1="520" y1="268" x2="520" y2="360" stroke="var(--dg-rca, #B83B35)" stroke-width="1.2"/>
+    <line x1="680" y1="260" x2="680" y2="224" stroke="var(--dg-rule-wash, rgba(15,23,42,.10))" stroke-width="0.8"/>
+    <line x1="832" y1="268" x2="832" y2="304" stroke="var(--dg-rule-wash, rgba(15,23,42,.10))" stroke-width="0.8"/>
+
+    <!-- gap label -->
+    <rect x="240" y="216" width="352" height="16" rx="2" fill="var(--dg-surface, #FFFFFF)"/>
+    <text x="248" y="228" font-size="12" font-weight="500" fill="var(--dg-rca, #B83B35)">약 10초 — 데이터 경로가 비어 있고 workload가 기동하지 못함</text>
+
+    <!-- events -->
+    <circle cx="112" cy="264" r="4" fill="var(--dg-muted, #5B6879)"/>
+    <circle cx="232" cy="264" r="4" fill="var(--dg-muted, #5B6879)"/>
+    <circle cx="520" cy="264" r="6" fill="var(--dg-rca, #B83B35)"/>
+    <circle cx="680" cy="264" r="4" fill="var(--dg-muted, #5B6879)"/>
+    <circle cx="832" cy="264" r="4" fill="var(--dg-muted, #5B6879)"/>
+
+    <!-- labels: above -->
+    <text x="112" y="200" font-size="16" font-weight="600" fill="var(--dg-text, #0F172A)">노드 reboot / migration</text>
+    <text x="112" y="216" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">비정상 종료 직후</text>
+
+    <text x="680" y="200" font-size="16" font-weight="600" fill="var(--dg-text, #0F172A)">containerd 재시작</text>
+    <text x="680" y="216" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">즉시 복구 조치</text>
+
+    <!-- labels: below -->
+    <text x="232" y="324" font-size="16" font-weight="600" fill="var(--dg-text, #0F172A)">containerd 시작</text>
+    <text x="232" y="340" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">systemd 기동 순서</text>
+
+    <text x="520" y="380" font-size="16" font-weight="600" fill="var(--dg-rca, #B83B35)">filesystem mount 완료</text>
+    <text x="520" y="396" font-size="12" font-weight="500" fill="var(--dg-rca, #B83B35)">fsck 정리 후</text>
+
+    <text x="832" y="324" font-size="16" font-weight="600" text-anchor="middle" fill="var(--dg-text, #0F172A)">데이터 정상 인식</text>
+    <text x="832" y="340" font-size="12" font-weight="500" text-anchor="middle" fill="var(--dg-muted, #5B6879)">workload 복구</text>
+
+    <!-- editorial aside -->
+    <text x="40" y="432" font-size="16" font-style="italic" fill="var(--dg-muted, #5B6879)">재시작하면 복구된다는 것만 보고 런타임 문제로 넘어갈 뻔했습니다. journal timestamp와</text>
+    <text x="40" y="452" font-size="16" font-style="italic" fill="var(--dg-muted, #5B6879)">mount 완료 시각을 맞춰보고 나서야 순서 문제라는 것이 보였습니다.</text>
+
+    <text x="40" y="480" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">지속 조치 · <tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">containerd</tspan> 기동이 데이터 디스크 mount를 보장하는 systemd target에 의존하도록 조정하는 방향을 검토했습니다.</text>
+    <text x="40" y="500" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">로그로 확인된 간격은 표시된 약 10초 구간뿐이고, 나머지 간격은 순서만 나타냅니다.</text>
+
+    <!-- legend -->
+    <line x1="40" y1="520" x2="920" y2="520" stroke="var(--dg-rule-wash, rgba(15,23,42,.10))" stroke-width="0.8"/>
+    <text x="40" y="548" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12"
+          letter-spacing="0.14em" fill="var(--dg-muted, #5B6879)">LEGEND</text>
+    <rect x="136" y="536" width="32" height="16" rx="4"
+          fill="var(--dg-rca-fill, #FBECEB)" stroke="var(--dg-rca, #B83B35)" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="180" y="548" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">기동 순서가 어긋난 구간</text>
+    <circle cx="392" cy="544" r="4" fill="var(--dg-muted, #5B6879)"/>
+    <text x="408" y="548" font-size="12" font-weight="500" fill="var(--dg-muted, #5B6879)">관측된 이벤트</text>
+  </g>
+</svg>

@@ -267,10 +267,67 @@ const archField = (arch) => {
 const tags = (v) =>
   !v || !v.length ? '' : `<ul class="tags">${v.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
 
+/* ------------------------------------------------------------------ cards */
+// Projects and troubleshooting cases deliberately read differently: a project
+// card leads with the structure it changed, a case card leads with what was
+// observed and which layer the cause turned out to sit in.
+const projectCard = (p) => `
+<article class="card project-card">
+  <a href="${url('projects/' + p.slug + '/')}">
+    <p class="card-kicker">${esc(p.type)}</p>
+    <h3 class="card-title">${esc(p.title)}</h3>
+    <p class="card-body">${esc(p.summary)}</p>
+    <p class="card-meta">${isNeedData(p.period) ? needTag(p.period) : esc(p.period)}</p>
+  </a>
+</article>`;
+
+const caseCard = (c) => {
+  const card = c.card || {};
+  return `
+<article class="card case-card">
+  <a href="${url('troubleshooting/' + c.slug + '/')}">
+    <p class="card-kicker">${esc(c.category)}${card.kind ? `<span class="card-kind">${esc(card.kind)}</span>` : ''}</p>
+    <h3 class="card-title">${esc(card.headline || c.title)}</h3>
+    ${card.symptom ? `<p class="card-body">${esc(card.symptom)}</p>` : ''}
+    ${card.domain ? `<p class="card-domain"><span>원인 계층</span> ${esc(card.domain)}</p>` : ''}
+    ${card.evidence ? `<p class="card-evidence">Evidence · ${esc(card.evidence)}</p>` : ''}
+  </a>
+</article>`;
+};
+
 const evidenceLinks = (v) => !v || !v.length ? '' : `<ul class="bullets evidence-links">${v.map((e) => `<li><a href="${url(evidenceRoute(e.path))}">${esc(e.label)}</a></li>`).join('')}</ul>`;
 
 // 왼쪽 모노 라벨 + 오른쪽 본문. 이 사이트의 기본 조판 단위입니다.
-const field = (label, body) => (body ? `<section class="field"><h2>${esc(label)}</h2><div class="field-body">${body}</div></section>` : '');
+// Anchors come from the English half of a "English / 한국어" label, so the URL
+// stays readable; a collision would break both anchors, so it is suffixed.
+const slugify = (s) =>
+  String(s).split(' / ')[0].toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '');
+
+const field = (label, body, id) =>
+  body
+    ? `<section class="field"${id ? ` id="${esc(id)}"` : ''}><h2>${esc(label)}</h2><div class="field-body">${body}</div></section>`
+    : '';
+
+// A detail page is a list of [label, body] pairs; empty ones drop out, and the
+// ones that survive also produce the in-page nav, so the two can't disagree.
+const detailSections = (pairs) => {
+  const seen = new Map();
+  const present = pairs
+    .filter(([, body]) => body)
+    .map(([label, body]) => {
+      const base = slugify(label);
+      const n = (seen.get(base) || 0) + 1;
+      seen.set(base, n);
+      return [label, body, n > 1 ? `${base}-${n}` : base];
+    });
+  if (!present.length) return '';
+  const nav = present.length > 2
+    ? `<nav class="section-nav" aria-label="이 페이지 안에서 이동">${present
+        .map(([label, , id]) => `<a href="#${esc(id)}">${esc(label.split(' / ')[0])}</a>`)
+        .join('')}</nav>`
+    : '';
+  return nav + present.map(([label, body, id]) => field(label, body, id)).join('');
+};
 
 const NAV = [
   ['Home', ''],
@@ -314,15 +371,24 @@ function page({ path, title, description, main, wide = false }) {
 <body>
 <a class="skip" href="#main">본문으로 건너뛰기</a>
 <header class="masthead">
-  <a class="wordmark" href="${url('')}">
-    <span class="wordmark-name">${esc(site.name)}</span>
-    <span class="wordmark-role">${esc(site.role)}</span>
-  </a>
-  <nav aria-label="주요 메뉴">${nav}</nav>
-  <button type="button" id="theme-toggle" class="theme-toggle" aria-label="라이트/다크 테마 전환" aria-pressed="false">
-    <span class="theme-toggle-icon" aria-hidden="true"></span>
-    <span class="theme-toggle-text" aria-hidden="true">Theme</span>
-  </button>
+  <div class="masthead-inner">
+    <a class="wordmark" href="${url('')}">
+      <span class="wordmark-name">${esc(site.name)}</span>
+      <span class="wordmark-role">${esc(site.role)}</span>
+    </a>
+    <nav id="site-nav" aria-label="주요 메뉴">${nav}</nav>
+    <div class="masthead-actions">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="라이트/다크 테마 전환" aria-pressed="false">
+        <span class="theme-toggle-icon" aria-hidden="true"></span>
+        <span class="theme-toggle-text" aria-hidden="true">Theme</span>
+      </button>
+      <a class="header-cta" href="mailto:${esc(site.contact.email)}">Contact</a>
+      <button type="button" id="nav-toggle" class="nav-toggle" aria-controls="site-nav" aria-expanded="false">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+        <span class="nav-toggle-text">메뉴</span>
+      </button>
+    </div>
+  </div>
 </header>
 <main id="main" class="${wide ? 'wide' : ''}">
 ${main}
@@ -337,17 +403,33 @@ ${main}
   <p class="footer-note">Production 사례의 고객사 정보와 네트워크 식별자는 모두 제거했습니다.</p>
 </footer>
 <script>(function(){
-  var btn = document.getElementById('theme-toggle');
-  if(!btn) return;
   var root = document.documentElement;
-  function sync(){ btn.setAttribute('aria-pressed', root.getAttribute('data-theme') === 'dark' ? 'true' : 'false'); }
-  sync();
-  btn.addEventListener('click', function(){
-    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('portfolio-theme', next); } catch (e) {}
+  var btn = document.getElementById('theme-toggle');
+  if(btn){
+    var sync = function(){ btn.setAttribute('aria-pressed', root.getAttribute('data-theme') === 'dark' ? 'true' : 'false'); };
     sync();
-  });
+    btn.addEventListener('click', function(){
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('portfolio-theme', next); } catch (e) {}
+      sync();
+    });
+  }
+  var navBtn = document.getElementById('nav-toggle');
+  var nav = document.getElementById('site-nav');
+  if(navBtn && nav){
+    navBtn.addEventListener('click', function(){
+      var open = navBtn.getAttribute('aria-expanded') === 'true';
+      navBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      document.body.classList.toggle('nav-open', !open);
+    });
+    nav.addEventListener('click', function(e){
+      if(e.target.tagName === 'A'){
+        navBtn.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('nav-open');
+      }
+    });
+  }
 })();</script>
 ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true,theme:'neutral',securityLevel:'strict'});</script>` : ''}
 </body>
@@ -367,20 +449,15 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
     .map((h) => `<div class="stat"><p class="stat-value">${esc(h.value)}</p><p class="stat-label">${esc(h.label)}</p></div>`)
     .join('');
 
-  const featuredProjects = projects
-    .slice(0, 4)
-    .map(
-      (p) =>
-        `<li><a href="${url('projects/' + p.slug + '/')}"><span class="idx-cat">${esc(p.type)}</span><span class="idx-title">${esc(p.title)}</span><span class="idx-sum">${esc(p.summary)}</span></a></li>`
-    )
-    .join('');
+  const featuredProjects = projects.slice(0, 4).map(projectCard).join('');
 
+  // Home shows three cases that demonstrate different layers — autoscaling,
+  // control plane, Linux runtime — so the pick is declared in content, not
+  // inherited from the casebook's depth ordering.
   const featuredCases = cases
-    .slice(0, 3)
-    .map(
-      (c) =>
-        `<li><a href="${url('troubleshooting/' + c.slug + '/')}"><span class="idx-cat">${esc(c.category)}</span><span class="idx-title">${esc(c.title)}</span></a></li>`
-    )
+    .filter((c) => typeof c.homeOrder === 'number')
+    .sort((a, b) => a.homeOrder - b.homeOrder)
+    .map(caseCard)
     .join('');
 
   // Home shows only the tools that declare a homeOrder; the full toolkit
@@ -422,11 +499,12 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
   <p class="scope-lead">${inline(site.platformScope.implication)}</p>
 </section>` : '';
 
-  const platformStack = site.platformStack ? `
-<section class="home-section platform-stack">
-  <div class="section-kicker"><h2>${esc(site.platformStack.title)}</h2></div>
-  ${figure(site.platformStack)}
-</section>` : '';
+  // The layer figure is the hero's visual: it says what the role covers before
+  // any prose does, and it keeps the hero from being a wall of text.
+  const heroFigure = site.platformStack ? `
+  <div class="hero-figure">
+    ${figure(site.platformStack, 'hero')}
+  </div>` : '';
 
   const readingGuide = site.readingGuide ? `
 <section class="reading-guide">
@@ -437,23 +515,24 @@ ${main.includes('class="mermaid"') ? `<script type="module">import mermaid from 
 
   const main = `
 <section class="hero">
-  <p class="eyebrow">${esc(site.roleSecondary)}</p>
-  <p class="hero-name">${esc(site.name)}</p>
-  <h1>${esc(site.role)}</h1>
-  <p class="hero-lead">${inline(site.tagline)}</p>
-  ${site.heroSecondary ? `<p class="hero-intro">${inline(site.heroSecondary)}</p>` : ''}
-  <ul class="tags hero-tags">${site.coreTechnologies.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
-  <p class="cta">
-    <a class="cta-primary" href="${url('projects/')}">프로젝트 보기</a>
-    <a href="${url('troubleshooting/')}">장애 분석</a>
-    <a href="${esc(site.contact.github)}">GitHub</a>
-    <a href="mailto:${esc(site.contact.email)}">Email</a>
-  </p>
-  ${availability}
+  <div class="hero-copy">
+    <p class="eyebrow">${esc(site.role.toUpperCase())}</p>
+    <h1>${esc(site.role)}</h1>
+    <p class="hero-meta">${esc(site.name)} · ${esc(site.nameKo)} — ${esc(site.roleSecondary)}</p>
+    <p class="hero-lead">${inline(site.tagline)}</p>
+    ${site.heroSecondary ? `<p class="hero-intro">${inline(site.heroSecondary)}</p>` : ''}
+    <ul class="tags hero-tags">${site.coreTechnologies.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+    <p class="cta">
+      <a class="cta-primary" href="${url('projects/')}">프로젝트 보기</a>
+      <a class="cta-secondary" href="${url('troubleshooting/')}">장애 분석 읽기</a>
+      <a href="${esc(site.contact.github)}">GitHub</a>
+      <a href="mailto:${esc(site.contact.email)}">Email</a>
+    </p>
+    ${availability}
+  </div>
+  ${heroFigure}
 </section>
 <section class="stats">${highlights}</section>
-${platformStack}
-${platformScope}
 ${readingGuide}
 <section class="home-section">
   <div class="section-kicker"><h2>Core Expertise / 핵심 역량</h2></div>
@@ -461,13 +540,14 @@ ${readingGuide}
 </section>
 <section class="home-section">
   <div class="section-kicker"><h2>주요 프로젝트 / Selected Engineering Work</h2></div>
-  <ul class="index-list large featured-grid">${featuredProjects}</ul>
-  <p class="more"><a href="${url('projects/')}">모든 프로젝트 보기</a></p>
+  <div class="card-grid">${featuredProjects}</div>
+  <p class="more"><a href="${url('projects/')}">모든 프로젝트 보기 →</a></p>
 </section>
-<section class="home-section">
-  <div class="section-kicker"><h2>장애 분석 / Troubleshooting Casebook</h2></div>
-  <ul class="index-list rca-list">${featuredCases}</ul>
-  <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기</a></p>
+<section class="home-section rca-section">
+  <div class="section-kicker"><h2>장애 분석 / Troubleshooting Highlights</h2></div>
+  <p class="section-lead">서로 다른 계층에서 원인을 찾은 사례 세 개입니다. 나머지는 Casebook에 있습니다.</p>
+  <div class="card-grid card-grid-3">${featuredCases}</div>
+  <p class="more"><a href="${url('troubleshooting/')}">모든 사례 보기 →</a></p>
 </section>
 <section class="home-section">
   <div class="section-kicker"><h2>Operations Toolkit · 운영 자동화</h2></div>
@@ -475,6 +555,7 @@ ${readingGuide}
   <ul class="index-list tool-list">${homeTools}</ul>
   <p class="more"><a href="${url('tools/')}">운영 도구 전체 보기 →</a></p>
 </section>
+${platformScope}
 <section class="home-section resume-snapshot">
   <div class="section-kicker"><h2>경력 요약 / Experience</h2></div>
   ${field('Profile / 소개', para(site.resume.summary))}
@@ -539,25 +620,14 @@ ${field('Education', `<ul class="bullets">${edu}</ul>`)}`;
 
 // Projects index + detail
 {
-  const list = projects
-    .map(
-      (p) => `
-<li>
-  <a href="${url('projects/' + p.slug + '/')}">
-    <span class="idx-cat">${esc(p.type)}</span>
-    <span class="idx-title">${esc(p.title)}</span>
-    <span class="idx-sum">${esc(p.summary)}</span>
-  </a>
-</li>`
-    )
-    .join('');
+  const list = projects.map(projectCard).join('');
 
   page({
     path: 'projects/',
     title: 'Projects / 프로젝트',
     description: 'Production Kubernetes 플랫폼 구축·운영 프로젝트',
     main: `<header class="page-head"><h1>Projects / 프로젝트</h1><p>실제 운영 환경에서 수행한 대표 프로젝트입니다. 무엇을 설치했는지보다 어떤 제약 아래에서 어떤 구조를 골랐는지를 적었습니다.</p></header>
-<ul class="index-list large">${list}</ul>`,
+<div class="card-grid">${list}</div>`,
   });
 
   for (const p of projects) {
@@ -574,19 +644,21 @@ ${field('Education', `<ul class="bullets">${edu}</ul>`)}`;
   <h1>${esc(p.title)}</h1>
   <p class="lede">${inline(p.summary)}</p>
 </header>
-${field('Context', paras(p.context))}
-${field('Problem', bullets(p.problem))}
-${field('Constraints', bullets(p.constraints))}
-${field('My role', bullets(p.role))}
-${field('Architecture', archField(p.architecture))}
-${field('My decisions / 내가 판단한 부분', notes(p.decisions))}
-${field('Implementation', bullets(p.implementation))}
-${field('Validation', bullets(p.validation))}
-${field('Outcome', bullets(p.outcome))}
-${field('Tech stack', tags(p.technologies))}
-${field('Evidence', evidenceLinks(p.evidence_links))}
-${field('Related cases', related ? `<ul class="bullets">${related}</ul>` : '')}
-${field('Repository', p.related_repository ? `<p><a href="https://github.com/${esc(site.githubUsername)}/${esc(p.related_repository)}">${esc(p.related_repository)}</a></p>` : '')}
+${detailSections([
+  ['Context', paras(p.context)],
+  ['Problem', bullets(p.problem)],
+  ['Constraints', bullets(p.constraints)],
+  ['My role', bullets(p.role)],
+  ['Architecture', archField(p.architecture)],
+  ['My decisions / 내가 판단한 부분', notes(p.decisions)],
+  ['Implementation', bullets(p.implementation)],
+  ['Validation', bullets(p.validation)],
+  ['Outcome', bullets(p.outcome)],
+  ['Tech stack', tags(p.technologies)],
+  ['Evidence', evidenceLinks(p.evidence_links)],
+  ['Related cases', related ? `<ul class="bullets">${related}</ul>` : ''],
+  ['Repository', p.related_repository ? `<p><a href="https://github.com/${esc(site.githubUsername)}/${esc(p.related_repository)}">${esc(p.related_repository)}</a></p>` : ''],
+])}
 <p class="back"><a href="${url('projects/')}">← Projects</a></p>`;
     page({ path: `projects/${p.slug}/`, title: p.title, description: p.summary, main });
   }
@@ -594,25 +666,17 @@ ${field('Repository', p.related_repository ? `<p><a href="https://github.com/${e
 
 // Troubleshooting index + detail
 {
-  const list = cases
-    .map(
-      (c) => `
-<li>
-  <a href="${url('troubleshooting/' + c.slug + '/')}">
-    <span class="idx-cat">${esc(c.category)}</span>
-    <span class="idx-title">${esc(c.title)}</span>
-    <span class="idx-sum">${esc(c.root_cause.slice(0, 90))}…</span>
-  </a>
-</li>`
-    )
-    .join('');
+  // Casebook order is depth-first, not chronological: how far down the stack
+  // the cause turned out to sit. The last two entries say so themselves — one
+  // is a path validation, one is a migration — and are labelled as such.
+  const list = cases.map(caseCard).join('');
 
   page({
     path: 'troubleshooting/',
     title: 'Troubleshooting / 장애 분석',
     description: 'Kubernetes 운영 장애 분석 casebook',
-    main: `<header class="page-head"><h1>Troubleshooting Casebook</h1><p>운영 중 실제로 겪은 장애를 관측 → 가설 → 검증 → 제거 → 원인 순서로 정리했습니다. 처음부터 답을 알고 쓴 글이 아니라, 그때 어디를 헤맸는지도 남겼습니다.</p></header>
-<ul class="index-list large rca-list">${list}</ul>`,
+    main: `<header class="page-head"><h1>Troubleshooting Casebook</h1><p>운영 중 실제로 겪은 장애를 관측 → 가설 → 검증 → 제거 → 원인 순서로 정리했습니다. 처음부터 답을 알고 쓴 글이 아니라, 그때 어디를 헤맸는지도 남겼습니다. 순서는 시간순이 아니라 원인이 어느 계층에 있었는지를 기준으로 했습니다.</p></header>
+<div class="card-grid card-grid-3">${list}</div>`,
   });
 
   for (const c of cases) {
@@ -622,18 +686,20 @@ ${field('Repository', p.related_repository ? `<p><a href="https://github.com/${e
   <h1>${esc(c.title)}</h1>
   <p class="lede">${inline(c.root_cause)}</p>
 </header>
-${field('Environment / 환경', tags(c.environment))}
-${field('Symptoms / 현상', bullets(c.symptoms))}
-${field('Architecture / 구조', figures(c.diagrams) || diagram(c.architecture))}
-${field('Investigation / 조사', bullets(c.investigation))}
-${field('Hypotheses / 가설', notes(c.hypotheses))}
-${field('Evidence / 근거', bullets(c.evidence))}
-${field('Root Cause / 원인', para(c.root_cause))}
-${field('Resolution / 조치', bullets(c.resolution))}
-${field('Validation / 검증', bullets(c.validation))}
-${field('Prevention / 재발 방지', bullets(c.prevention))}
-${field('Lessons / 배운 점', bullets(c.lessons))}
-${field('Evidence / 관련 파일', evidenceLinks(c.evidence_links))}
+${detailSections([
+  ['Environment / 환경', tags(c.environment)],
+  ['Symptoms / 현상', bullets(c.symptoms)],
+  ['Diagram / 타임라인·의존 관계', figures(c.diagrams) || diagram(c.architecture)],
+  ['Investigation / 조사', bullets(c.investigation)],
+  ['Hypotheses / 가설', notes(c.hypotheses)],
+  ['Evidence / 근거', bullets(c.evidence)],
+  ['Root Cause / 원인', para(c.root_cause)],
+  ['Resolution / 조치', bullets(c.resolution)],
+  ['Validation / 검증', bullets(c.validation)],
+  ['Prevention / 재발 방지', bullets(c.prevention)],
+  ['Lessons / 배운 점', bullets(c.lessons)],
+  ['Files / 관련 파일', evidenceLinks(c.evidence_links)],
+])}
 <p class="back"><a href="${url('troubleshooting/')}">← 장애 분석 목록</a></p>`;
     page({ path: `troubleshooting/${c.slug}/`, title: c.title, description: c.symptoms[0], main });
   }
@@ -805,7 +871,14 @@ ${utilitySection}`,
         // The document's own H1 becomes the page <h1> in the header above, so
         // drop it from the body — otherwise every evidence page ships two H1s.
         const withoutTitle = source.replace(/^#\s+.+$(\r?\n)?/m, '');
-        body = `<article class="markdown-body">${markdownToHtml(withoutTitle)}</article>`;
+        // Relative .md links between evidence documents have to follow the same
+        // routing the pages do (foo.md -> foo/), and a non-README page sits one
+        // directory deeper than its source file did.
+        const up = /\/README\.md$/i.test(publicSourcePath) ? '' : '../';
+        body = `<article class="markdown-body">${markdownToHtml(withoutTitle)}</article>`.replace(
+          /href="(?!https?:|mailto:|#|\/)([^"]+)\.md(#[^"]*)?"/gi,
+          (_, target, hash = '') => `href="${up}${/README$/i.test(target) ? target.replace(/README$/i, '') : target + '/'}${hash}"`
+        );
         lede = 'Sanitized technical evidence connected to the portfolio project.';
       } else {
         title = fileName;
@@ -831,7 +904,13 @@ ${body}
 /* --------------------------------------------------------------- 부가 파일 */
 
 if (existsSync(join(ROOT, 'assets'))) {
-  cpSync(join(ROOT, 'assets'), join(OUT, 'assets'), { recursive: true });
+  // assets/diagrams/src/ holds the diagram-design sources and the exporter that
+  // produces the SVGs — build inputs, not pages, so they stay out of dist/.
+  const diagramSrc = join(ROOT, 'assets', 'diagrams', 'src');
+  cpSync(join(ROOT, 'assets'), join(OUT, 'assets'), {
+    recursive: true,
+    filter: (src) => !src.startsWith(diagramSrc),
+  });
 }
 // .md/.yaml/.yml/.sh/.json evidence files are rendered as pages above; only
 // remaining evidence assets (if any) are copied through as static files.

@@ -1,6 +1,6 @@
 {
   "slug": "guest-cluster-api-etcd-san-mismatch",
-  "order": 3,
+  "order": 2,
   "title": "Guest Cluster API Failure / DHCP·etcd SAN 불일치",
   "date": "Production incident · date omitted",
   "category": "Control Plane / PKI / Networking",
@@ -14,23 +14,23 @@
   ],
   "symptoms": [
     "Guest Kubernetes cluster API 요청이 정상 응답하지 않았습니다.",
-    "Control-plane recovery와 cluster management operation이 정상적으로 진행되지 않았습니다."
+    "control-plane을 복구하려 해도, 클러스터 관리 작업 자체가 API를 거치기 때문에 손을 쓸 수 없었습니다."
   ],
   "investigation": [
-    "애플리케이션보다 아래 계층으로 범위를 줄이고 control-plane network와 etcd peer 상태를 확인했습니다.",
-    "정상 환경과 DHCP/address assignment, certificate SAN, etcd peer health를 비교했습니다."
+    "애플리케이션 쪽은 볼 것이 없다고 보고 control-plane 네트워크와 etcd peer 상태부터 봤습니다.",
+    "같은 구성의 정상 환경을 옆에 놓고 DHCP 주소 할당, 인증서 SAN, etcd peer health를 하나씩 맞춰봤습니다."
   ],
   "hypotheses": [
     {
-      "label": "Generic API network failure",
-      "text": "API timeout 자체가 원인이 아니라 control-plane dependency가 깨진 결과로 판단하고 etcd까지 내려갔습니다."
+      "label": "API 쪽 일시적인 네트워크 문제",
+      "text": "API가 응답하지 않는 것은 결과지 원인이 아니라고 봤습니다. 그래서 API를 더 보지 않고 그 아래 etcd까지 내려갔습니다."
     }
   ],
   "evidence": [
-    "Control-plane address와 etcd certificate SAN의 불일치가 확인됐습니다.",
-    "Network consistency 복구 후 etcd / API 상태를 재검증했습니다."
+    "control-plane 주소가 etcd peer 인증서의 SAN과 달랐습니다. 여기서 방향이 정해졌습니다.",
+    "주소 일관성을 되돌린 뒤 etcd와 API 상태를 다시 확인했습니다."
   ],
-  "root_cause": "서로 격리되어야 할 DHCP 영역의 address assignment 문제가 control-plane VM 주소와 etcd peer certificate SAN의 불일치를 만들었고, etcd clustering 실패가 kube-apiserver 장애로 이어졌습니다.",
+  "root_cause": "서로 떨어져 있어야 할 DHCP 영역이 겹치면서 control-plane VM이 예상과 다른 주소를 받았습니다. 그 주소가 etcd peer 인증서의 SAN과 맞지 않아 etcd가 클러스터를 이루지 못했고, 그 위의 kube-apiserver가 함께 멈췄습니다.",
   "resolution": [
     "충돌하는 DHCP 경로를 제거하고 control-plane 주소 일관성을 복구했습니다.",
     "정상 복구되지 않은 control-plane instance는 platform self-healing / replacement 흐름으로 복구했습니다."
@@ -55,9 +55,17 @@
   "diagrams": [
     {
       "diagram": "assets/diagrams/troubleshooting/etcd-san-mismatch.svg",
-      "label": "의존 경로",
-      "caption": "증상은 API timeout이었지만 원인은 네 계층 아래 DHCP 주소 할당에 있었습니다.",
+      "label": "Dependency path",
+      "caption": "증상은 API 무응답이었고, 원인은 네 계층 아래 DHCP 주소 할당에 있었습니다.",
       "alt": "DHCP 주소 할당 충돌이 control plane VM 주소를 바꾸고, etcd peer 인증서 SAN 불일치로 etcd clustering이 실패해 kube-apiserver가 무응답이 되고 Cluster API 작업이 막히는 의존 경로"
     }
-  ]
+  ],
+  "homeOrder": 2,
+  "card": {
+    "kind": "장애 RCA",
+    "headline": "응답하지 않는 Guest Cluster API",
+    "symptom": "API 요청이 돌아오지 않고 control-plane 복구 작업도 진행되지 않았습니다.",
+    "domain": "DHCP 주소 할당 · 인증서 SAN · etcd",
+    "evidence": "control-plane 주소와 etcd peer 인증서 SAN이 어긋난 기록"
+  }
 }

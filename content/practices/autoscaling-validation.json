@@ -20,7 +20,7 @@
     "부하 증가 → HPA replica 증가 → Pending Pod → CA node scale-out 연계 확인",
     "oversized Pod / nodeSelector / scheduling pressure를 이용한 scale-out trigger 검증",
     "PDB, safe-to-evict, emptyDir 등 scale-down blocker 조건 검증",
-    "기능 점검 결과를 바탕으로 실제 운영 Kubernetes 환경에 Cluster Autoscaler 설치"
+    "점검에서 걸리는 것이 없어 운영 환경에 Cluster Autoscaler를 설치"
   ],
   "validation": [
     "HPA target/replica 변화와 CA log를 동시에 관찰",

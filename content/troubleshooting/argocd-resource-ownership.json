@@ -15,10 +15,9 @@
     "기존 Helm/manual 리소스를 ArgoCD로 이관한 뒤에도 기존 release와 관리 정보가 남아 있었습니다.",
     "기존 ownership을 잘못 제거하면 이미 GitOps에서 사용 중인 Kubernetes resource까지 삭제할 수 있었습니다."
   ],
-  "architecture": "Old path: Helm/manual ─┐\n                        ├─ same Kubernetes objects\nNew path: Git → ArgoCD ─┘",
   "investigation": [
-    "ArgoCD가 관리 중인 실제 object와 기존 Helm release resource를 비교했습니다.",
-    "managed-by label만으로 ownership을 단정하지 않고 manifest / application 기준으로 확인했습니다."
+    "ArgoCD가 실제로 들고 있는 object와 기존 Helm release가 들고 있는 리소스를 한 줄씩 맞춰봤습니다.",
+    "managed-by 라벨만 보고 소유자를 단정하지 않고, 매니페스트와 Application 정의를 기준으로 확인했습니다."
   ],
   "hypotheses": [
     {
@@ -48,5 +47,12 @@
       "label": "Migration playbook",
       "path": "evidence/04-kubernetes-gitops-migration/docs/migration-playbook.md"
     }
-  ]
+  ],
+  "card": {
+    "kind": "이관 · 변경 안전성",
+    "headline": "지우면 안 되는 리소스 가려내기",
+    "symptom": "ArgoCD로 옮긴 뒤에도 기존 Helm/수동 경로의 관리 정보가 남아 있었습니다.",
+    "domain": "GitOps 소유권 · Helm metadata · 삭제 안전성",
+    "evidence": "ArgoCD가 관리 중인 object와 기존 Helm release를 하나씩 대조"
+  }
 }

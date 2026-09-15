@@ -17,12 +17,15 @@
  * role-for-role, not a recolour.
  */
 
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SRC = dirname(fileURLToPath(import.meta.url));
-const OUT = join(SRC, '..', 'tools');
+const DIAGRAMS = join(SRC, '..');
+// A source's directory picks its output group: src/projects/x.html lands in
+// assets/diagrams/projects/x.svg. Sources at src/ root stay in tools/.
+const groupOf = (dir) => (dir === SRC ? 'tools' : basename(dir));
 
 // plugin skin literal -> site token (with the literal kept as fallback)
 const SKIN = [
@@ -40,17 +43,29 @@ const SKIN = [
   [/stroke="rgba\(15,23,42,0\.30\)"/g, 'stroke="var(--dg-rule-strong, rgba(15,23,42,0.30))"'],
 ];
 
-const files = readdirSync(SRC).filter((f) => f.endsWith('.html'));
-for (const file of files) {
-  const html = readFileSync(join(SRC, file), 'utf8');
+const sources = readdirSync(SRC, { withFileTypes: true }).flatMap((entry) =>
+  entry.isDirectory()
+    ? readdirSync(join(SRC, entry.name))
+        .filter((f) => f.endsWith('.html'))
+        .map((f) => join(SRC, entry.name, f))
+    : entry.name.endsWith('.html')
+      ? [join(SRC, entry.name)]
+      : []
+);
+
+for (const source of sources) {
+  const html = readFileSync(source, 'utf8');
   const match = html.match(/<svg[\s\S]*<\/svg>/);
   if (!match) {
-    console.warn(`⚠ no <svg> found in ${file}`);
+    console.warn(`⚠ no <svg> found in ${basename(source)}`);
     continue;
   }
   let svg = match[0];
   for (const [from, to] of SKIN) svg = svg.replace(from, to);
-  const out = join(OUT, basename(file, '.html') + '.svg');
-  writeFileSync(out, svg + '\n');
-  console.log(`✓ ${file} → assets/diagrams/tools/${basename(out)}`);
+  const group = groupOf(dirname(source));
+  const outDir = join(DIAGRAMS, group);
+  mkdirSync(outDir, { recursive: true });
+  const name = basename(source, '.html') + '.svg';
+  writeFileSync(join(outDir, name), svg + '\n');
+  console.log(`✓ ${group}/${basename(source)} → assets/diagrams/${group}/${name}`);
 }

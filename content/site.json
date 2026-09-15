@@ -30,12 +30,16 @@
       "label": "온프레미스 Kubernetes 구축·운영 · 2020.10~"
     },
     {
-      "value": "격리 네트워크 7개",
-      "label": "DMZ 3 · 내부 4 — 환경 간 통신 경로 없음"
+      "value": "25개",
+      "label": "운영 클러스터 · Supervisor 7 · Shared 9 · Workload 9"
     },
     {
-      "value": "클러스터 25개",
-      "label": "Supervisor 7 · Shared 9 · Workload 9 · 확인된 워커 66대+"
+      "value": "7개",
+      "label": "격리 네트워크 · DMZ 3 · 내부 4 · 환경 간 통신 경로 없음"
+    },
+    {
+      "value": "66대+",
+      "label": "확인된 워커 노드 · Shared 27 · Workload 39"
     },
     {
       "value": "CKA",
@@ -232,7 +236,7 @@
     "description": "VMware · Dell 기반 엔터프라이즈 인프라 구축·운영 SI. 금융·공공 고객의 온프레미스 클라우드 플랫폼 담당."
   },
   "platformStack": {
-    "title": "담당해 온 플랫폼 계층",
+    "label": "담당해 온 플랫폼 계층",
     "diagram": "assets/diagrams/home/platform-stack.svg",
     "caption": "특정 고객 topology가 아니라, 지금까지 다뤄 온 계층과 그 위에 걸친 작업을 정리한 그림입니다.",
     "alt": "업무 애플리케이션 아래로 Kubernetes 플랫폼, 네트워크와 인그레스, 온프레미스 인프라 네 계층과 GitOps, 관측성, 장애 분석, 운영 자동화가 계층 전체에 걸치는 구성"

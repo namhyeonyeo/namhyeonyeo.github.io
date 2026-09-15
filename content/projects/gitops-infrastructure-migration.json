@@ -34,7 +34,7 @@
     "flow": {
       "label": "Ownership migration",
       "diagram": "assets/diagrams/projects/gitops-migration.svg",
-      "caption": "이관 순서: 현재 리소스 조사 → Git 정의 작성 → kubectl diff 확인 → Application 연결(기존 경로 유지) → sync 검증 → 기존 소유권 제거.",
+      "caption": "위험한 구간은 매니페스트를 옮기는 쪽이 아니라, 같은 오브젝트를 두 경로가 함께 관리하는 가운데 구간입니다.",
       "alt": "AS-IS에서 운영자가 Jumpbox에서 Helm과 YAML을 직접 적용하던 구조가, TO-BE에서 GitLab의 desired state를 ArgoCD가 클러스터에 반영하는 구조로 바뀌는 비교 다이어그램"
     },
     "notes": [

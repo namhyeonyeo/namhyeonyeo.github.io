@@ -13,29 +13,28 @@
     "kubelet"
   ],
   "symptoms": [
-    "Supervisor certificate renewal 문제와 control-plane instability가 함께 발생했습니다.",
-    "Guest control-plane replacement / registration도 정상적이지 않은 증상이 함께 관측됐습니다."
+    "Supervisor 인증서 갱신이 실패하면서 control-plane도 같이 불안정해졌습니다.",
+    "같은 시간대에 guest control-plane을 교체하고 등록하는 작업도 끝까지 가지 않았습니다."
   ],
-  "architecture": "Supervisor certificates\n      ↓\nControl-plane components\n      ↓\nGuest cluster management / registration",
   "investigation": [
-    "certificate renewal error를 먼저 확인했습니다.",
-    "Supervisor core component health, kubelet, etcd endpoint, guest control-plane registration 상태를 계층별로 분리해 확인했습니다."
+    "가장 먼저 눈에 띈 인증서 갱신 오류부터 확인했습니다.",
+    "그다음에는 한꺼번에 보지 않고 Supervisor 핵심 컴포넌트, kubelet, etcd endpoint, guest control-plane 등록을 따로따로 확인했습니다."
   ],
   "hypotheses": [
     {
-      "label": "모든 downstream 증상이 하나의 certificate root cause",
-      "text": "vendor escalation 과정에서 correlation과 causation을 분리해 봐야 했습니다."
+      "label": "눈에 보이는 증상 전부가 인증서 하나에서 나왔다",
+      "text": "벤더와 함께 보는 동안에도 같은 시간에 일어난 것과 서로 원인이 되는 것을 구분해야 했습니다. 하나로 묶어 설명하려 할수록 복구 순서가 틀어졌습니다."
     }
   ],
   "evidence": [
-    "Supervisor core component와 etcd health를 별도 확인했습니다.",
-    "Guest control-plane replacement 이후 registration 상태를 재검증했습니다."
+    "Supervisor 핵심 컴포넌트와 etcd health를 각각 확인한 기록",
+    "guest control-plane을 교체한 뒤 등록 상태를 다시 확인한 기록"
   ],
   "root_cause": "Supervisor 인증서 갱신 문제와 게스트 클러스터 쪽 증상이 같은 시간대에 겹쳐 있었습니다. 하나의 원인으로 전부 설명하려다 보면 복구 순서를 틀리게 되어서, 인증서 갱신과 guest control-plane 등록 실패를 별도 사건으로 놓고 각각 복구·검증했습니다.",
   "resolution": [
     "지원 절차에 따른 certificate renewal",
-    "영향받은 control-plane component health recovery",
-    "정상 등록되지 않은 guest control-plane instance replacement"
+    "영향받은 control-plane 컴포넌트를 하나씩 정상 상태로 되돌림",
+    "끝내 등록되지 않은 guest control-plane 인스턴스는 교체"
   ],
   "validation": [
     "kube-apiserver / scheduler / controller-manager / etcd health 확인",
@@ -52,5 +51,12 @@
       "label": "Sanitized case note",
       "path": "evidence/06-sre-troubleshooting-casebook/cases/05-supervisor-certificate-renewal.md"
     }
-  ]
+  ],
+  "card": {
+    "kind": "장애 RCA",
+    "headline": "같은 시간대에 겹쳐 있던 두 개의 장애",
+    "symptom": "Supervisor 인증서 갱신 오류와 guest control-plane 등록 실패가 함께 나타났습니다.",
+    "domain": "Supervisor 인증서 · control-plane 컴포넌트 · guest 등록",
+    "evidence": "컴포넌트별 health를 따로 확인해 두 사건을 분리한 기록"
+  }
 }

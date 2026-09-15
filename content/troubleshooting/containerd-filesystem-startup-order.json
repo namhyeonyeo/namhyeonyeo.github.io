@@ -16,19 +16,18 @@
     "노드 reboot/migration 이후 workload가 정상 기동하지 않았습니다.",
     "containerd를 재시작하면 복구되어 처음에는 runtime cache/socket 문제처럼 보였습니다."
   ],
-  "architecture": "Boot\n ├─ containerd start\n └─ data filesystem mount (later)\n\ncontainerd starts before expected data is available",
   "investigation": [
-    "image cache, stale socket, kubelet/containerd state, filesystem 상태를 후보로 두었습니다.",
+    "이미지 캐시, 남아 있는 소켓, kubelet과 containerd의 상태 불일치, filesystem을 후보로 놓고 시작했습니다.",
     "journal timestamp와 filesystem mount 시점을 비교했습니다."
   ],
   "hypotheses": [
     {
-      "label": "Runtime cache/socket",
-      "text": "재시작으로 복구된다는 현상만으로는 설명되지만 journal timeline과 맞지 않았습니다."
+      "label": "런타임 캐시나 남은 소켓 문제",
+      "text": "재시작하면 복구된다는 점은 설명이 되지만, journal에 찍힌 순서와는 맞지 않았습니다."
     },
     {
-      "label": "Filesystem startup ordering",
-      "text": "containerd 시작 후 데이터 filesystem이 늦게 mount되는 타임라인이 확인되어 채택했습니다."
+      "label": "filesystem 마운트 순서 문제",
+      "text": "containerd가 먼저 뜨고 데이터 filesystem이 나중에 붙는 순서가 로그에 그대로 남아 있어 이쪽으로 정리했습니다."
     }
   ],
   "evidence": [
@@ -37,8 +36,8 @@
   ],
   "root_cause": "containerd가 기대하는 데이터 filesystem이 mount되기 전에 runtime이 먼저 시작되는 startup-order dependency 문제였습니다.",
   "resolution": [
-    "즉시 복구는 filesystem mount 완료 후 containerd restart로 수행했습니다.",
-    "장기적으로 runtime startup이 실제 filesystem availability를 보장하는 target에 의존하도록 검토했습니다."
+    "당장은 filesystem이 다 올라온 것을 확인하고 containerd를 재시작해 되살렸습니다.",
+    "다음부터 같은 일이 없으려면 containerd 기동이 데이터 디스크 mount를 실제로 보장하는 systemd target에 걸려 있어야 해서, 그 방향으로 검토했습니다."
   ],
   "validation": [
     "filesystem mount 후 runtime data 인식 확인",
@@ -54,6 +53,22 @@
     {
       "label": "Sanitized case note",
       "path": "evidence/06-sre-troubleshooting-casebook/cases/03-containerd-filesystem-startup-order.md"
+    }
+  ],
+  "homeOrder": 3,
+  "card": {
+    "kind": "장애 RCA",
+    "headline": "재시작하면 살아나는 노드",
+    "symptom": "재부팅 뒤 workload가 뜨지 않는데 containerd를 재시작하면 복구됐습니다.",
+    "domain": "systemd 기동 순서 · filesystem mount · container runtime",
+    "evidence": "containerd 시작 시각과 data filesystem mount 완료 시각의 약 10초 간격"
+  },
+  "diagrams": [
+    {
+      "diagram": "assets/diagrams/troubleshooting/containerd-startup-order.svg",
+      "label": "Boot timeline",
+      "caption": "재시작으로 복구된다는 사실만으로는 순서가 보이지 않습니다. 시작 시각과 mount 완료 시각을 나란히 놓고서야 구간이 드러났습니다.",
+      "alt": "노드 재부팅 후 containerd가 먼저 시작되고 약 10초 뒤 fsck 정리가 끝나 데이터 filesystem이 mount되며, 그 사이 데이터 경로가 비어 있어 workload가 기동하지 못하다가 mount 완료 후 containerd를 재시작하자 복구되는 부팅 타임라인"
     }
   ]
 }
